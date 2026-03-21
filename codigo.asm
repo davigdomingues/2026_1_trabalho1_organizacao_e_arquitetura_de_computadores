@@ -1,4 +1,6 @@
 		.data
+		.align 0
+train_head	.word 0
 		.text
 		.align 2
 		.globl main
@@ -10,10 +12,6 @@ main:
 		ecall
 
 
-
-
-
-
 # -----------------------------------------------
 # create_wagon
 # argumentos:
@@ -23,10 +21,10 @@ main:
 # retorno:
 #	- a0 : Endereco do no' do vagao
 # -----------------------------------------------
-create_wagon:	# Salvamento dos argumentos
+create_wagon:	# Armazenamento dos argumentos em registradores temporários
 		mv t1, a0
 		mv t2, a1
-		mv t3, a2
+		mv t3, a2	
 
 		# Alocacao de espaco
 		li a7, 9 # codigo de sbrk
@@ -42,7 +40,7 @@ create_wagon:	# Salvamento dos argumentos
 		# Armazenamento do endereco do prox vagao
 		sw t3, 8(a0)
 		
-		jr ra
+		ret
 
 # -----------------------------------------------
 # insert_front
@@ -51,23 +49,42 @@ create_wagon:	# Salvamento dos argumentos
 #	- a1 : ID
 #	- a2 : Tipo
 # -----------------------------------------------
-insert_front:	# Salvamento dos argumentos
-		mv t1, a0
-		mv t2, a1
-		mv t3, a2
-		
-		# Salvamento do endereco de retorno
-		# ...
+insert_front:	# Salvamento de registrador salvo
+		addi sp, sp, -4
+		sw s0, 0(sp)
 
-		# Criar vagao
-		mv a0, t1
-		mv a1, t2
-		lw a2, 8(t1) # carregar como argumento do novo vagao o vagao que vinha logo apos a locomotiva		
-		jal ra, create_wagon # < --- Problema
+		# Armazenamento de argumento
+		mv s0, a0
+		mv t1, a1
+		mv t2, a2
 		
-		# Atualizar prox endereco da locomotiva
-		sw a0, 8(t1)
+		# Salvamento de ra
+		addi sp, sp, -4
+		sw ra, 0(sp)
+								
+		# Criacao de novo vagao
+		mv a0, a1
+		mv a1, a2
+		call create_wagon # a0 = &vagao_criado
 		
-		jr ra # < --- Problema
+		# Atualizar prox vagao do novo vagao
+		lw t0, 8(s0) # t0 = locomotiva.prox_vagao
+		sw t0, 8(a0) # vagao_criado.prox_vagao = locomotiva.prox_vagao
 		
-				
+		sw a0, 8(s0) # locomotiva.prox_vagao = &vagao_criado
+		
+		# Restauracao do ra
+		lw ra, 0(sp)
+		addi sp, sp, 4
+
+		# Restauracao de registrador salvo
+		lw s0, 0(sp)
+		addi sp, sp, 4
+		
+		ret
+
+
+
+
+
+
