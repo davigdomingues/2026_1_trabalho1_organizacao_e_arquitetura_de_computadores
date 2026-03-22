@@ -1,15 +1,74 @@
-		.data
-		.align 0
-train_head	.word 0
-		.text
-		.align 2
-		.globl main
-	
-main:		
+.data
+        .align 2
+        train_head:  .word 0
 
-		# Return 0
-		li a7, 10
-		ecall
+        msg_welcome: .asciz "Bem-vindo ao jogo Montagem de Trem!\n\n"
+
+        msg_menu: .asciz "Menu:\n1 - Adicionar vagão no início\n2 - Adicionar vagão no final\n3 - Remover vagão por ID\n4 - Listar trem\n5 - Buscar vagão\n6 - Sair\n\nOpção: "
+
+        msg_ok: .asciz "Operação realizada.\n\n"
+        msg_invalid: .asciz "Opção inválida.\n\n"
+
+.text
+        .align 2
+        .globl main
+
+main:
+        # Mensagem inicial
+        la a0, msg_welcome
+        li a7, 4
+        ecall
+
+        # Inicializa o trem com a locomotiva (ID = 0, Tipo = 0, prox = 0)
+        li a0, 0
+        li a1, 0
+        li a2, 0
+
+        call create_wagon # a0 = &locomotiva
+	
+        la t0, train_head
+        sw a0, 0(t0)
+
+menu_loop:
+        # Mostra menu e lê a opção selecionada
+        la a0, msg_menu
+        li a7, 4
+        ecall
+
+        li a7, 5
+        ecall
+        mv t0, a0 # t0 = opção
+
+        # li t1, 1
+        # beq t0, t1, opcao_insert_front
+
+        # li t1, 2
+        # beq t0, t1, opcao_add_back
+
+        # li t1, 3
+        # beq t0, t1, opcao_remover
+
+        # li t1, 4
+        # beq t0, t1, opcao_listar
+
+        # li t1, 5
+        # beq t0, t1, opcao_buscar
+
+        li t1, 6
+        beq t0, t1, opcao_sair
+
+        j opcao_invalida
+
+opcao_invalida:
+        la a0, msg_invalid
+        li a7, 4
+        ecall
+
+        j menu_loop
+
+opcao_sair:
+        li a7, 10
+        ecall
 
 
 # -----------------------------------------------
@@ -22,7 +81,7 @@ main:
 #	- a0 : Endereco do no' do vagao
 # -----------------------------------------------
 create_wagon:	# Armazenamento dos argumentos em registradores temporários
-		mv t1, a0
+	    mv t1, a0
 		mv t2, a1
 		mv t3, a2	
 
