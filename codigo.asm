@@ -1,6 +1,7 @@
 .data
         .align 2
         train_head:  .word 0
+        .align 0
 
         msg_welcome: .asciz "Bem-vindo ao jogo Montagem de Trem!\n\n"
 
@@ -186,7 +187,6 @@ exLoop_insBack:	sw s1, 0(t1) # ultimo_vagao.prox_vagao = &vagao_criado
 		addi sp, sp, 4
 		
 		ret
-		
 		
 		
 		
