@@ -130,7 +130,7 @@ opcao_sair:
 #	- a0 : Endereco do no' do vagao
 # -----------------------------------------------
 create_wagon:	# Armazenamento dos argumentos em registradores temporários
-	    mv t1, a0
+	    	mv t1, a0
 		mv t2, a1
 		mv t3, a2	
 
@@ -157,41 +157,103 @@ create_wagon:	# Armazenamento dos argumentos em registradores temporários
 #	- a1 : ID
 #	- a2 : Tipo
 # -----------------------------------------------
-insert_front:	# Salvamento de registrador salvo
+insert_front:	# Salvamento de registradores
 		addi sp, sp, -4
 		sw s0, 0(sp)
+		addi sp, sp, -4
+		sw ra, 0(sp)
 
 		# Armazenamento de argumento
 		mv s0, a0
 		mv t1, a1
 		mv t2, a2
-		
-		# Salvamento de ra
-		addi sp, sp, -4
-		sw ra, 0(sp)
 								
 		# Criacao de novo vagao
 		mv a0, a1
 		mv a1, a2
+		addi a2, zero, 0
 		call create_wagon # a0 = &vagao_criado
 		
-		# Atualizar prox vagao do novo vagao
+		# Atualizar prox.vagao do novo vagao
 		lw t0, 8(s0) # t0 = locomotiva.prox_vagao
 		sw t0, 8(a0) # vagao_criado.prox_vagao = locomotiva.prox_vagao
 		
 		sw a0, 8(s0) # locomotiva.prox_vagao = &vagao_criado
 		
-		# Restauracao do ra
+		# Restauracao de registradores
 		lw ra, 0(sp)
 		addi sp, sp, 4
-
-		# Restauracao de registrador salvo
 		lw s0, 0(sp)
 		addi sp, sp, 4
 		
 		ret
 
+# -----------------------------------------------
+# insert_back
+# argumentos:
+#	- a0 : endereco da locomotiva
+#	- a1 : ID
+#	- a2 : tipo
+# -----------------------------------------------
+insert_back:	# salvamento de registradores
+		addi sp, sp, -4
+		sw s0, 0(sp)
+		addi sp, sp, -4
+		sw s1, 0(sp)
+		addi sp, sp, -4
+		sw ra, 0(sp)
+		
+		# armazenamento de argumentos
+		mv s0, a0 # s0 = &locomotiva
+		mv t0, a1 # t0 = ID
+		mv t1, a2 # t1 = tipo
 
+		# s1 = create_wagon(a0, a1, 0)
+		mv a0, t0
+		mv a1, t1
+		li a2, 0
+		call create_wagon
+		mv s1, a0
+		
+		mv t1, s0 #t1 = &locomotiva
+		lw t2, 8(t1) # t2 = locomotiva.prox_vagao
+
+loop_insBack:	# t1 = &ultimo_vagao
+		beq t2, zero, exLoop_insBack
+		lw t1, 8(t1) # t1 = &prox_vagao
+		lw t2, 8(t1) # t2 = prox_vagao.prox_vagao
+		j loop_insBack
+		
+exLoop_insBack:	sw s1, 0(t1) # ultimo_vagao.prox_vagao = &vagao_criado
+		
+		# restauracao de registradores
+		lw ra, 0(sp)
+		addi sp, sp, 4
+		lw s1, 0(sp)
+		addi sp, sp, 4
+		lw s0, 0(sp)
+		addi sp, sp, 4
+		
+		ret
+		
+		
+		
+		
+		
+		
+		 
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 
 
 
