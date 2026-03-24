@@ -224,7 +224,7 @@ loop_insBack:	# t1 = &ultimo_vagao
 		lw t2, 8(t1) # t2 = prox_vagao.prox_vagao
 		j loop_insBack
 		
-exLoop_insBack:	sw s1, 0(t1) # ultimo_vagao.prox_vagao = &vagao_criado
+exLoop_insBack:	sw s1, 8(t1) # ultimo_vagao.prox_vagao = &vagao_criado
 		
 		# restauracao de registradores
 		lw ra, 0(sp)
