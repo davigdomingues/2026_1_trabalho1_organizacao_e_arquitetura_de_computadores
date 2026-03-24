@@ -9,6 +9,16 @@
         msg_ok: .asciz "Operação realizada.\n\n"
         msg_invalid: .asciz "Opção inválida.\n\n"
 
+        .align 2
+
+menu_tabela:
+        .word opcao_insert_front
+        .word opcao_add_back
+        .word opcao_remover
+        .word opcao_listar
+        .word opcao_buscar
+        .word opcao_sair
+
 .text
         .align 2
         .globl main
@@ -39,25 +49,58 @@ menu_loop:
         ecall
         mv t0, a0 # t0 = opção
 
-        # li t1, 1
-        # beq t0, t1, opcao_insert_front
-
-        # li t1, 2
-        # beq t0, t1, opcao_add_back
-
-        # li t1, 3
-        # beq t0, t1, opcao_remover
-
-        # li t1, 4
-        # beq t0, t1, opcao_listar
-
-        # li t1, 5
-        # beq t0, t1, opcao_buscar
-
+        # Valida intervalo [1..6]
+        li t1, 1
+        blt t0, t1, opcao_invalida
         li t1, 6
-        beq t0, t1, opcao_sair
+        bgt t0, t1, opcao_invalida
 
-        j opcao_invalida
+        # Índice = opção - 1 (em relação ao menu_tabela)
+        addi t0, t0, -1
+        slli t0, t0, 2 # offset = (op-1) * 4
+        la t1, menu_tabela
+        add t1, t1, t0
+        lw t2, 0(t1) # t2 = endereco do handler
+
+        jalr ra, t2, 0 # chama handler
+
+        j menu_loop
+
+# Handlers das opções
+opcao_insert_front:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_add_back:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_remover:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_listar:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_buscar:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+        
+        ret
 
 opcao_invalida:
         la a0, msg_invalid
