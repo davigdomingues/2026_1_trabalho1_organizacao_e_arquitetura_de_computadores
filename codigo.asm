@@ -1,6 +1,7 @@
 .data
         .align 2
         train_head:  .word 0
+        .align 0
 
         msg_welcome: .asciz "Bem-vindo ao jogo Montagem de Trem!\n\n"
 
@@ -8,6 +9,11 @@
 
         msg_ok: .asciz "Operação realizada.\n\n"
         msg_invalid: .asciz "Opção inválida.\n\n"
+
+        # Mensagens usadas pelo remover
+        msg_id_vagao: .asciz "ID do vagão: "
+        msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
+        msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
 
         .align 2
 
@@ -40,7 +46,7 @@ main:
         sw a0, 0(t0)
 
 menu_loop:
-        # Mostra menu e lê a opção selecionada
+        # Mostra o menu e lê a opção selecionada
         la a0, msg_menu
         li a7, 4
         ecall
