@@ -10,6 +10,30 @@
         msg_ok: .asciz "Operação realizada.\n\n"
         msg_invalid: .asciz "Opção inválida.\n\n"
 
+        msg_id_vagao: .asciz "Digite o ID do vagão (inteiro, maior que 0): "
+        msg_tipo_vagao: .asciz "Digite o tipo do vagão (1..3):\n1 - Carga\n2 - Passageiro\n3 - Combustível\nTipo: "
+
+        msg_id_invalido: .asciz "ID inválido. Use um inteiro positivo.\n\n"
+        msg_id_duplicado: .asciz "ID já existente no trem. Escolha outro ID.\n\n"
+        msg_tipo_invalido: .asciz "Tipo inválido. Use 1, 2 ou 3.\n\n"
+        msg_add_ok_front: .asciz "Vagão adicionado no início.\n\n"
+        msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
+        msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
+
+        # Mensagens usadas pelo remover
+        msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
+        msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
+
+        .align 2
+
+menu_tabela:
+        .word opcao_insert_front
+        .word opcao_add_back
+        .word opcao_remover
+        .word opcao_listar
+        .word opcao_buscar
+        .word opcao_sair
+
 .text
         .align 2
         .globl main
@@ -26,12 +50,12 @@ main:
         li a2, 0
 
         call create_wagon # a0 = &locomotiva
-	
+        
         la t0, train_head
         sw a0, 0(t0)
 
 menu_loop:
-        # Mostra menu e lê a opção selecionada
+        # Mostra o menu e lê a opção selecionada
         la a0, msg_menu
         li a7, 4
         ecall
@@ -40,25 +64,119 @@ menu_loop:
         ecall
         mv t0, a0 # t0 = opção
 
-        # li t1, 1
-        # beq t0, t1, opcao_insert_front
-
-        # li t1, 2
-        # beq t0, t1, opcao_add_back
-
-        # li t1, 3
-        # beq t0, t1, opcao_remover
-
-        # li t1, 4
-        # beq t0, t1, opcao_listar
-
-        # li t1, 5
-        # beq t0, t1, opcao_buscar
-
+        # Valida intervalo [1..6]
+        li t1, 1
+        blt t0, t1, opcao_invalida
         li t1, 6
-        beq t0, t1, opcao_sair
+        bgt t0, t1, opcao_invalida
 
-        j opcao_invalida
+        # Índice = opção - 1 (em relação ao menu_tabela)
+        addi t0, t0, -1
+        slli t0, t0, 2 # offset = (op-1) * 4
+        la t1, menu_tabela
+        add t1, t1, t0
+        lw t2, 0(t1) # t2 = endereco do handler
+
+        jalr ra, t2, 0 # chama handler
+
+        j menu_loop
+
+# Handlers das opções
+opcao_insert_front:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_add_back:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+# Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
+opcao_remover:        
+        # Solicitação do ID
+        la a0, msg_id_vagao
+        li a7, 4
+        ecall
+
+        li a7, 5
+        ecall
+        mv t0, a0 # t0 = id_alvo
+
+        # Não aceita ID negativo
+        blt t0, zero, remover_id_invalido
+
+        # Não permite remover a locomotiva (ID = 0)
+        beq t0, zero, sem_remocao_local
+
+        # Carrega o ponteiro da locomotiva
+        la t1, train_head
+        lw t1, 0(t1) # t1 = &locomotiva
+
+        # prev = locomotiva; curr = locomotiva.prox
+        mv t3, t1
+        lw t2, 8(t1) # t2 = curr = prev.prox
+
+remover_loop:
+        beqz t2, remover_nao_encontrado
+        lw t4, 0(t2) # t4 = curr.id
+
+        beq t4, t0, remover_encontrado
+
+        mv t3, t2 # prev = curr
+        lw t2, 8(t2) # curr = curr.prox
+
+        j remover_loop
+
+remover_encontrado:
+        # Lista simples não tem "prev" no nó, então usa prev/curr do loop
+        lw t5, 8(t2) # t5 = curr.prox
+        sw t5, 8(t3) # prev.prox = curr.prox
+
+        la a0, msg_remove_ok
+        li a7, 4
+        ecall
+
+        ret
+
+remover_nao_encontrado:
+        la a0, msg_nao_encontrado
+        li a7, 4
+        ecall
+
+        ret
+
+sem_remocao_local:
+        la a0, msg_sem_remocao
+        li a7, 4
+        ecall
+
+        ret
+
+remover_id_invalido:
+        la a0, msg_id_invalido
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_listar:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+
+        ret
+
+opcao_buscar:
+        la a0, msg_ok
+        li a7, 4
+        ecall
+        
+        ret
 
 opcao_invalida:
         la a0, msg_invalid
@@ -82,25 +200,25 @@ opcao_sair:
 #	- a0 : Endereco do no' do vagao
 # -----------------------------------------------
 create_wagon:	# Armazenamento dos argumentos em registradores temporários
-	    	mv t1, a0
-		mv t2, a1
-		mv t3, a2	
+        mv t1, a0
+        mv t2, a1
+        mv t3, a2   
 
-		# Alocacao de espaco
-		li a7, 9 # codigo de sbrk
-		li a0, 12 # 12 bytes = 4 bytes (ID=Int) + 4 bytes (Tipo=Int) + 4 bytes (End. do prox. no')
-		ecall # a0 = endereco da area reservada
-	
-		# Armazenamento do ID
-		sw t1, 0(a0)
-		
-		# Armazenamento do tipo
-		sw t2, 4(a0)
-		
-		# Armazenamento do endereco do prox vagao
-		sw t3, 8(a0)
-		
-		ret
+        # Alocacao de espaco
+        li a7, 9 # codigo de sbrk
+        li a0, 12 # 12 bytes = 4 bytes (ID=Int) + 4 bytes (Tipo=Int) + 4 bytes (End. do prox. no')
+        ecall # a0 = endereco da area reservada
+    
+        # Armazenamento do ID
+        sw t1, 0(a0)
+        
+        # Armazenamento do tipo
+        sw t2, 4(a0)
+        
+        # Armazenamento do endereco do prox vagao
+        sw t3, 8(a0)
+        
+        ret
 
 # -----------------------------------------------
 # insert_front
@@ -110,35 +228,35 @@ create_wagon:	# Armazenamento dos argumentos em registradores temporários
 #	- a2 : Tipo
 # -----------------------------------------------
 insert_front:	# Salvamento de registradores
-		addi sp, sp, -4
-		sw s0, 0(sp)
-		addi sp, sp, -4
-		sw ra, 0(sp)
+        addi sp, sp, -4
+        sw s0, 0(sp)
+        addi sp, sp, -4
+        sw ra, 0(sp)
 
-		# Armazenamento de argumento
-		mv s0, a0
-		mv t1, a1
-		mv t2, a2
-								
-		# Criacao de novo vagao
-		mv a0, a1
-		mv a1, a2
-		addi a2, zero, 0
-		call create_wagon # a0 = &vagao_criado
-		
-		# Atualizar prox.vagao do novo vagao
-		lw t0, 8(s0) # t0 = locomotiva.prox_vagao
-		sw t0, 8(a0) # vagao_criado.prox_vagao = locomotiva.prox_vagao
-		
-		sw a0, 8(s0) # locomotiva.prox_vagao = &vagao_criado
-		
-		# Restauracao de registradores
-		lw ra, 0(sp)
-		addi sp, sp, 4
-		lw s0, 0(sp)
-		addi sp, sp, 4
-		
-		ret
+        # Armazenamento de argumento
+        mv s0, a0
+        mv t1, a1
+        mv t2, a2
+                                
+        # Criacao de novo vagao
+        mv a0, a1
+        mv a1, a2
+        addi a2, zero, 0
+        call create_wagon # a0 = &vagao_criado
+        
+        # Atualizar prox.vagao do novo vagao
+        lw t0, 8(s0) # t0 = locomotiva.prox_vagao
+        sw t0, 8(a0) # vagao_criado.prox_vagao = locomotiva.prox_vagao
+        
+        sw a0, 8(s0) # locomotiva.prox_vagao = &vagao_criado
+        
+        # Restauracao de registradores
+        lw ra, 0(sp)
+        addi sp, sp, 4
+        lw s0, 0(sp)
+        addi sp, sp, 4
+        
+        ret
 
 # -----------------------------------------------
 # insert_back
@@ -148,45 +266,45 @@ insert_front:	# Salvamento de registradores
 #	- a2 : tipo
 # -----------------------------------------------
 insert_back:	# salvamento de registradores
-		addi sp, sp, -4
-		sw s0, 0(sp)
-		addi sp, sp, -4
-		sw s1, 0(sp)
-		addi sp, sp, -4
-		sw ra, 0(sp)
-		
-		# armazenamento de argumentos
-		mv s0, a0 # s0 = &locomotiva
-		mv t0, a1 # t0 = ID
-		mv t1, a2 # t1 = tipo
+        addi sp, sp, -4
+        sw s0, 0(sp)
+        addi sp, sp, -4
+        sw s1, 0(sp)
+        addi sp, sp, -4
+        sw ra, 0(sp)
+        
+        # armazenamento de argumentos
+        mv s0, a0 # s0 = &locomotiva
+        mv t0, a1 # t0 = ID
+        mv t1, a2 # t1 = tipo
 
-		# s1 = create_wagon(a0, a1, 0)
-		mv a0, t0
-		mv a1, t1
-		li a2, 0
-		call create_wagon
-		mv s1, a0
-		
-		mv t1, s0 #t1 = &locomotiva
-		lw t2, 8(t1) # t2 = locomotiva.prox_vagao
+        # s1 = create_wagon(a0, a1, 0)
+        mv a0, t0
+        mv a1, t1
+        li a2, 0
+        call create_wagon
+        mv s1, a0
+        
+        mv t1, s0 #t1 = &locomotiva
+        lw t2, 8(t1) # t2 = locomotiva.prox_vagao
 
 loop_insBack:	# t1 = &ultimo_vagao
-		beq t2, zero, exLoop_insBack
-		lw t1, 8(t1) # t1 = &prox_vagao
-		lw t2, 8(t1) # t2 = prox_vagao.prox_vagao
-		j loop_insBack
-		
+        beq t2, zero, exLoop_insBack
+        lw t1, 8(t1) # t1 = &prox_vagao
+        lw t2, 8(t1) # t2 = prox_vagao.prox_vagao
+        j loop_insBack
+        
 exLoop_insBack:	sw s1, 8(t1) # ultimo_vagao.prox_vagao = &vagao_criado
-		
-		# restauracao de registradores
-		lw ra, 0(sp)
-		addi sp, sp, 4
-		lw s1, 0(sp)
-		addi sp, sp, 4
-		lw s0, 0(sp)
-		addi sp, sp, 4
-		
-		ret
+        
+        # restauracao de registradores
+        lw ra, 0(sp)
+        addi sp, sp, 4
+        lw s1, 0(sp)
+        addi sp, sp, 4
+        lw s0, 0(sp)
+        addi sp, sp, 4
+        
+        ret
 		
 		
 		
