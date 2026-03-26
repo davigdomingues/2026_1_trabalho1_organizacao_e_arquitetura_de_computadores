@@ -3,26 +3,27 @@
         train_head:  .word 0
         .align 0
 
+        # Mensagens gerais
         msg_welcome: .asciz "Bem-vindo ao jogo Montagem de Trem!\n\n"
-
-        msg_menu: .asciz "Menu:\n1 - Adicionar vagão no início\n2 - Adicionar vagão no final\n3 - Remover vagão por ID\n4 - Listar trem\n5 - Buscar vagão\n6 - Sair\n\nOpção: "
-
         msg_ok: .asciz "Operação realizada.\n\n"
         msg_invalid: .asciz "Opção inválida.\n\n"
 
+        # Mensagens de entrada 
+        msg_menu: .asciz "Menu:\n1 - Adicionar vagão no início\n2 - Adicionar vagão no final\n3 - Remover vagão por ID\n4 - Listar trem\n5 - Buscar vagão\n6 - Sair\n\nOpção: "
         msg_id_vagao: .asciz "Digite o ID do vagão (inteiro, maior que 0): "
         msg_tipo_vagao: .asciz "Digite o tipo do vagão (1..3):\n1 - Carga\n2 - Passageiro\n3 - Combustível\nTipo: "
 
+        # Mensagens de erro ou comportamento inválido
         msg_id_invalido: .asciz "ID inválido. Use um inteiro positivo.\n\n"
         msg_id_duplicado: .asciz "ID já existente no trem. Escolha outro ID.\n\n"
         msg_tipo_invalido: .asciz "Tipo inválido. Use 1, 2 ou 3.\n\n"
+        msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
+        msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
+
+        # Mensagens de sucesso da operação
         msg_add_ok_front: .asciz "Vagão adicionado no início.\n\n"
         msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
-
-        # Mensagens usadas pelo remover
-        msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
-        msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
 
         .align 2
 
