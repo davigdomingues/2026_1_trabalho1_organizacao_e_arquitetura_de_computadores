@@ -24,6 +24,9 @@
         msg_add_ok_front: .asciz "Vagão adicionado no início.\n\n"
         msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
+        msg_encontrado: .asciz "Vagão encontrado.\n\n"
+        msg_id_encontrado: .asciz "Vagão encontrado.ID: "
+        pula_linha: .asciz "\n\n"
 
         .align 2
 
@@ -180,10 +183,16 @@ opcao_listar:
         ret
 
 opcao_buscar:
-        la a0, msg_ok
-        li a7, 4
-        ecall
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
         
+	jal search_wagon
+	
+        # Carregamento de ra na pilha
+        lw ra, 0(sp)	
+        addi sp, sp, 4
+
         ret
 
 opcao_invalida:
@@ -367,3 +376,56 @@ _rem_ret_id_invalido:
 _rem_ret_sem_remocao:
         li a0, 3
         ret
+
+# ----------------------------------------------------------------------------------------------
+# search_wagon
+# argumentos:
+#       - a0 : ID 
+# ----------------------------------------------------------------------------------------------
+search_wagon: 
+        # Solicitação do ID
+        la a0, msg_id_vagao
+        li a7, 4
+        ecall
+	
+	# Leitura do ID 
+        li a7, 5
+        ecall
+        mv t1, a0 # t1 = id_alvo
+        
+        # Validar ID
+        bltz t1, _search_invalid_id # if (a1 == NULL) invalid_id(); 
+        
+	# Carrega endereço da locomotiva
+        la t2, train_head 
+        lw t2, 0(t2) # t1 = &locomotiva 
+        lw t0, 8(t2) # t0 = head->prox
+
+loop_search: 
+        beqz t0, _search_id_not_found # if (a1 == NULL) id_not_found();
+        lw t3, 0(t0)   # t3 = curr->id
+        beq t1, t3, _search_id_found # if (t1 == t2) id_found();
+        lw t0, 8(t0) # t0 = t0->prox - vai para o próximo vagão 
+	j loop_search # retorna para a função
+
+_search_id_not_found: 
+	li a7, 4
+	la a0, msg_nao_encontrado      
+	ecall
+	ret    
+_search_invalid_id: 
+	li a7, 4
+	la a0, msg_id_invalido
+	ecall
+	ret  
+_search_id_found: 
+	li a7, 4
+	la a0, msg_id_encontrado
+        ecall 
+        li a7, 1
+        add a0, zero, t1
+        ecall
+        li a7, 4
+	la a0, pula_linha        
+	ecall
+	ret        
