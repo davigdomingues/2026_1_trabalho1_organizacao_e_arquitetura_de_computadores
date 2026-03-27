@@ -35,6 +35,15 @@ menu_tabela:
         .word opcao_buscar
         .word opcao_sair
 
+        .align 2
+
+# tabela de operações de casos durante a remoção do vagão, via ID
+rem_tabela:
+        .word _rem_case_ok # status 0 = ok
+        .word _rem_case_nao_encontrado # status 1 = não encontrado
+        .word _rem_case_id_invalido # status 2 = id inválido
+        .word _rem_case_sem_remocao # status 3 = locomotiva
+
 .text
         .align 2
         .globl main
@@ -98,7 +107,11 @@ opcao_add_back:
         ret
 
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
-opcao_remover:        
+opcao_remover:
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
         # Solicitação do ID
         la a0, msg_id_vagao
         li a7, 4
@@ -106,60 +119,54 @@ opcao_remover:
 
         li a7, 5
         ecall
-        mv t0, a0 # t0 = id_alvo
+        mv a1, a0 # a1 = id_alvo
 
-        # Não aceita ID negativo
-        blt t0, zero, remover_id_invalido
+        # carregamento da head (economia de operação de deslocamento da pilha)
+        la t0, train_head
+        lw a0, 0(t0) # a0 = &locomotiva (head/sentinela)
+        call remove_wagon # (a0 = head, a1 = id) -> a0 = status
 
-        # Não permite remover a locomotiva (ID = 0)
-        beq t0, zero, sem_remocao_local
+        lw ra, 0(sp)
+        addi sp, sp, 4
 
-        # Carrega o ponteiro da locomotiva
-        la t1, train_head
-        lw t1, 0(t1) # t1 = &locomotiva
+        # Status em a0: 0..3
+        mv t0, a0
 
-        # prev = locomotiva; curr = locomotiva.prox
-        mv t3, t1
-        lw t2, 8(t1) # t2 = curr = prev.prox
+        # Validação de intervalo [0..3]
+        bltz t0, _rem_case_default
+        li t1, 3
+        bgt t0, t1, _rem_case_default
 
-remover_loop:
-        beqz t2, remover_nao_encontrado
-        lw t4, 0(t2) # t4 = curr.id
+        # switch via tabela (igual menu_loop)
+        slli t0, t0, 2
+        la t1, rem_tabela
 
-        beq t4, t0, remover_encontrado
+        add t1, t1, t0
+        lw t2, 0(t1)
 
-        mv t3, t2 # prev = curr
-        lw t2, 8(t2) # curr = curr.prox
+        jalr zero, t2, 0
 
-        j remover_loop
+_rem_case_default:
+        la a0, msg_invalid
+        j _rem_print_and_ret
 
-remover_encontrado:
-        # Lista simples não tem "prev" no nó, então usa prev/curr do loop
-        lw t5, 8(t2) # t5 = curr.prox
-        sw t5, 8(t3) # prev.prox = curr.prox
-
+_rem_case_ok:
         la a0, msg_remove_ok
-        li a7, 4
-        ecall
+        j _rem_print_and_ret
 
-        ret
-
-remover_nao_encontrado:
+_rem_case_nao_encontrado:
         la a0, msg_nao_encontrado
-        li a7, 4
-        ecall
+        j _rem_print_and_ret
 
-        ret
-
-sem_remocao_local:
-        la a0, msg_sem_remocao
-        li a7, 4
-        ecall
-
-        ret
-
-remover_id_invalido:
+_rem_case_id_invalido:
         la a0, msg_id_invalido
+        j _rem_print_and_ret
+
+_rem_case_sem_remocao:
+        la a0, msg_sem_remocao
+        j _rem_print_and_ret
+
+_rem_print_and_ret:
         li a7, 4
         ecall
 
@@ -273,7 +280,7 @@ insert_back:	# salvamento de registradores
         sw s1, 0(sp)
         addi sp, sp, -4
         sw ra, 0(sp)
-        
+
         # armazenamento de argumentos
         mv s0, a0 # s0 = &locomotiva
         mv t0, a1 # t0 = ID
@@ -304,28 +311,59 @@ exLoop_insBack:	sw s1, 8(t1) # ultimo_vagao.prox_vagao = &vagao_criado
         addi sp, sp, 4
         lw s0, 0(sp)
         addi sp, sp, 4
-        
+
         ret
-		
-		
-		
-		
-		
-		
-		 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 
+# ----------------------------------------------------------------------------------------------
+# remove_wagon
+# argumentos:
+#       - a0 : endereco da locomotiva (head/sentinela)
+#       - a1 : ID do vagão a remover
+#
+# retorno (a0):
+#       - 0 : removido com sucesso
+#       - 1 : vagão nao encontrado
+#       - 2 : ID inválido (ID < 0)
+#       - 3 : não permite remover locomotiva (ID == 0)
+#
+# observações:
+#       1 - Nó: [0] = id, [4] = tipo, [8] = prox
+#
+#       2 - A função foi transformada em uma Função Folha. Como ela não executa 
+#       chamadas (call/jal) internamente, o registrador 'ra'permanece intacto. 
+#       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
+# ----------------------------------------------------------------------------------------------
+remove_wagon:
+        bltz a1, _rem_ret_id_invalido
+        beqz a1, _rem_ret_sem_remocao
 
+        mv t3, a0 # prev = locomotiva
+        lw t2, 8(a0) # curr = locomotiva.prox
 
+_rem_loop:
+        beqz t2, _rem_ret_nao_encontrado
+        lw t4, 0(t2) # curr.id
+        beq t4, a1, _rem_found
 
+        mv t3, t2
+        lw t2, 8(t2)
+        j _rem_loop
+
+_rem_found:
+        lw t5, 8(t2) # curr.prox
+        sw t5, 8(t3) # prev.prox = curr.prox
+
+        li a0, 0
+        ret
+
+_rem_ret_nao_encontrado:
+        li a0, 1
+        ret
+
+_rem_ret_id_invalido:
+        li a0, 2
+        ret
+
+_rem_ret_sem_remocao:
+        li a0, 3
+        ret
