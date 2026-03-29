@@ -290,6 +290,7 @@ _end_verify_id:
 #       - 0 : adicionado com sucesso
 #       - 1 : tipo invalido
 #       - 2 : id ja inserido
+#       - 3 : id invalido (id < 0)
 # ----------------------------------------------------------------------------------------------
 insert_front:	
         # salvamento de registradores
@@ -304,13 +305,19 @@ insert_front:
         add s1, a1, zero # s1 = id
         add s2, a2, zero # s2 = tipo
 
-        # Verificacao de id
+        # Verificacao de id (id nao negativo)
+        bge s1, zero, _insert_front_verificacao_se_id_ja_inserido
+        addi a0, zero, 3 # caso id negativo
+        j _end_insert_front
+
+_insert_front_verificacao_se_id_ja_inserido:
         add a0, s0, zero
         add a1, s1, zero
         call verify_id # a0 = 0 ou 1
         beq a0, zero, _insert_front_id_valido
         # Caso id ja inserido no vagao
         addi a0, zero, 2 # codigo de id ja inserido
+
         j _end_insert_front 
 
 _insert_front_id_valido:
@@ -356,6 +363,7 @@ _end_insert_front:
 #       - 0 : adicionado com sucesso
 #       - 1 : tipo invalido
 #       - 2 : id ja inserido
+#       - 3 : id invalido (id < 0)
 # ----------------------------------------------------------------------------------------------
 insert_back:	
         # salvamento de registradores
@@ -371,7 +379,12 @@ insert_back:
         add s1, a1, zero # s1 = id
         add s2, a2, zero # s2 = tipo
 
-        # Verificacao de id
+        # Verificacao de id (id nao negativo)
+        bge s1, zero, _insert_back_verificacao_se_id_ja_inserido
+        addi a0, zero, 3 # caso id negativo
+        j _end_insert_back
+
+_insert_back_verificacao_se_id_ja_inserido:
         add a0, s0, zero
         add a1, s1, zero
         call verify_id # a0 = 0 ou 1
