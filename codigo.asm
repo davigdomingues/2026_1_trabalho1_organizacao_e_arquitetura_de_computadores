@@ -43,6 +43,13 @@ rem_tabela:
         .word _rem_case_id_invalido # status 2 = id inválido
         .word _rem_case_sem_remocao # status 3 = locomotiva
 
+# tabela de operacoes de casos durante a adicao de vagao no inicio
+ins_front_tabela:
+        .word _ins_front_case_ok # status 0 = ok
+        .word _ins_front_case_tipo_invalido # status 1 = tipo invalido
+        .word _ins_front_case_id_invalido # status 2 = id invalido
+        .word _ins_front_case_id_ja_inserido # status 3 = id ja inserido
+
 .text
         .align 2
         .globl main
@@ -289,8 +296,8 @@ _end_verify_id:
 # retorno (a0):
 #       - 0 : adicionado com sucesso
 #       - 1 : tipo invalido
-#       - 2 : id ja inserido
-#       - 3 : id invalido (id < 0)
+#       - 2 : id invalido (id < 0)
+#       - 3 : id ja inserido
 # ----------------------------------------------------------------------------------------------
 insert_front:	
         # salvamento de registradores
@@ -307,7 +314,7 @@ insert_front:
 
         # Verificacao de id (id nao negativo)
         bge s1, zero, _insert_front_verificacao_se_id_ja_inserido
-        addi a0, zero, 3 # caso id negativo
+        addi a0, zero, 2 # caso id negativo
         j _end_insert_front
 
 _insert_front_verificacao_se_id_ja_inserido:
@@ -316,7 +323,7 @@ _insert_front_verificacao_se_id_ja_inserido:
         call verify_id # a0 = 0 ou 1
         beq a0, zero, _insert_front_id_valido
         # Caso id ja inserido no vagao
-        addi a0, zero, 2 # codigo de id ja inserido
+        addi a0, zero, 3 # codigo de id ja inserido
 
         j _end_insert_front 
 
@@ -362,8 +369,8 @@ _end_insert_front:
 # retorno (a0):
 #       - 0 : adicionado com sucesso
 #       - 1 : tipo invalido
-#       - 2 : id ja inserido
-#       - 3 : id invalido (id < 0)
+#       - 2 : id invalido (id < 0)
+#       - 3 : id ja inserido
 # ----------------------------------------------------------------------------------------------
 insert_back:	
         # salvamento de registradores
@@ -381,7 +388,7 @@ insert_back:
 
         # Verificacao de id (id nao negativo)
         bge s1, zero, _insert_back_verificacao_se_id_ja_inserido
-        addi a0, zero, 3 # caso id negativo
+        addi a0, zero, 2 # caso id negativo
         j _end_insert_back
 
 _insert_back_verificacao_se_id_ja_inserido:
@@ -390,7 +397,7 @@ _insert_back_verificacao_se_id_ja_inserido:
         call verify_id # a0 = 0 ou 1
         beq a0, zero, _insert_back_id_valido
         # Caso id ja inserido no vagao
-        addi a0, zero, 2 # codigo de id ja inserido
+        addi a0, zero, 3 # codigo de id ja inserido
         j _end_insert_back
 
 _insert_back_id_valido:
