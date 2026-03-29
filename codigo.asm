@@ -352,46 +352,74 @@ _end_insert_front:
 #	    - a0 : endereco da locomotiva
 #	    - a1 : ID
 #	    - a2 : tipo
+# retorno (a0):
+#       - 0 : adicionado com sucesso
+#       - 1 : tipo invalido
+#       - 2 : id ja inserido
 # ----------------------------------------------------------------------------------------------
-insert_back:	# salvamento de registradores
-        addi sp, sp, -4
+insert_back:	
+        # salvamento de registradores
+        addi sp, sp, -20
         sw s0, 0(sp)
-        addi sp, sp, -4
-        sw s1, 0(sp)
-        addi sp, sp, -4
-        sw ra, 0(sp)
+        sw s1, 4(sp)
+        sw s2, 8(sp)
+        sw s3, 12(sp)
+        sw ra, 16(sp)
 
-        # armazenamento de argumentos
-        mv s0, a0 # s0 = &locomotiva
-        mv t0, a1 # t0 = ID
-        mv t1, a2 # t1 = tipo
+        # salvamento de argumentos
+        add s0, a0, zero # s0 = &locomotiva
+        add s1, a1, zero # s1 = id
+        add s2, a2, zero # s2 = tipo
 
-        # s1 = create_wagon(a0, a1, 0)
-        mv a0, t0
-        mv a1, t1
-        li a2, 0
+        # Verificacao de id
+        add a0, s0, zero
+        add a1, s1, zero
+        call verify_id # a0 = 0 ou 1
+        beq a0, zero, _insert_back_id_valido
+        # Caso id ja inserido no vagao
+        addi a0, zero, 2 # codigo de id ja inserido
+        j _end_insert_back
+
+_insert_back_id_valido:
+        # Verificacao de tipo
+        blt s2, zero, _insert_back_tipo_invalido
+        addi t0, zero, 3
+        blt t0, s2, _insert_back_tipo_invalido
+        
+        # caso tipo valido - s3 = create_wagon(s1, s2, 0)
+        add a0, s1, zero
+        add a1, s2, zero
+        addi a2, zero, 0
         call create_wagon
-        mv s1, a0
-        
+        add s3, a0, zero
+
         mv t1, s0 #t1 = &locomotiva
-        lw t2, 8(t1) # t2 = locomotiva.prox_vagao
+        lw t2, 8(t1) # t2 = locomotiva.prox
 
-loop_insBack:	# t1 = &ultimo_vagao
-        beq t2, zero, exLoop_insBack
-        lw t1, 8(t1) # t1 = &prox_vagao
-        lw t2, 8(t1) # t2 = prox_vagao.prox_vagao
-        j loop_insBack
+        # t1 = &ultimo_vagao apos o loop
+_loop_insert_back:	
+        beq t2, zero, _exit_loop_insert_back
+        add t1, t2, zero # t1 = &vagao.prox
+        lw t2, 8(t1) # t2 = vagao.prox->prox
+        j _loop_insert_back
         
-exLoop_insBack:	sw s1, 8(t1) # ultimo_vagao.prox_vagao = &vagao_criado
-        
+_exit_loop_insert_back:
+        sw s3, 8(t1) # ultimo_vagao.prox_vagao = &vagao_criado
+        add a0, zero, zero # codigo de sucesso
+        j _end_insert_back
+
+_insert_back_tipo_invalido:
+        addi a0, zero, 1
+
+_end_insert_back:
         # restauracao de registradores
-        lw ra, 0(sp)
-        addi sp, sp, 4
-        lw s1, 0(sp)
-        addi sp, sp, 4
         lw s0, 0(sp)
-        addi sp, sp, 4
-
+        lw s1, 4(sp)
+        lw s2, 8(sp)
+        lw s3, 12(sp)
+        lw ra, 16(sp)
+        addi sp, sp, 20
+        
         ret
 
 # ----------------------------------------------------------------------------------------------
