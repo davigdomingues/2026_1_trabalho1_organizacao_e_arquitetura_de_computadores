@@ -200,11 +200,18 @@ opcao_sair:
 # -----------------------------------------------
 # create_wagon
 # argumentos:
-#	- a0 : ID
-#	- a1 : Tipo
-#	- a2 : Prox vagao
+#	    - a0 : ID
+#	    - a1 : Tipo
+#	    - a2 : Prox vagao
 # retorno:
-#	- a0 : Endereco do no' do vagao
+#	    - a0 : Endereco do no' do vagao
+# observacoes:
+#       1 - Nó: [0] = id, [4] = tipo, [8] = prox
+#       2 - Tipos:
+#           - 0 : locomotiva
+#           - 1 : carga
+#           - 2 : passageiro
+#           - 3 : combustivel 
 # -----------------------------------------------
 create_wagon:	# Armazenamento dos argumentos em registradores temporários
         mv t1, a0
@@ -227,51 +234,125 @@ create_wagon:	# Armazenamento dos argumentos em registradores temporários
         
         ret
 
-# -----------------------------------------------
+
+# ----------------------------------------------------------------------------------------------
+# verify_id
+# argumentos:
+#	    - a0 : endereco da locomotiva
+#       - a1 : id
+# retorno (a0):
+#       - 0 : id nao encontrado
+#       - 1 : id encontrado
+# ----------------------------------------------------------------------------------------------
+verify_id:
+        # Salvamento de registradores
+        addi sp, sp, -8
+        sw s0, 0(sp)
+        sw s1, 4(sp)
+        
+        # Salvamento de argumentos
+        add s0, a0, zero
+        add s1, a1, zero
+
+        add t0, s0, zero # t0 = &locomotiva
+        lw t1, 0(t0) # t1 = locomotiva.id 
+        lw t2, 8(t0) # t2 = locomotiva.prox
+
+_verify_id_loop:
+        beq s1, t1, _found_verify_id
+        beq t2, zero, _exit_verify_id_loop
+        add t0, t2, zero # t0 = vagao.prox
+        lw t1, 0(t0) # t1 = vagao.prox->id
+        lw t2, 8(t0) # t2 = vagao.prox->prox
+        j _verify_id_loop
+
+_found_verify_id:
+        addi a0, zero, 1
+        j _end_verify_id
+
+_exit_verify_id_loop:
+        add a0, zero, zero
+
+_end_verify_id:
+        # Restauracao de registradores
+        lw s0, 0(sp)
+        lw s1, 4(sp)
+        addi sp, sp, 8
+
+        ret
+# ----------------------------------------------------------------------------------------------
 # insert_front
 # argumentos:
-#	- a0 : endereco da locomotiva
-#	- a1 : ID
-#	- a2 : Tipo
-# -----------------------------------------------
-insert_front:	# Salvamento de registradores
-        addi sp, sp, -4
+#	    - a0 : endereco da locomotiva
+#       - a1 : id
+#       - a2 : tipo
+# retorno (a0):
+#       - 0 : adicionado com sucesso
+#       - 1 : tipo invalido
+#       - 2 : id ja inserido
+# ----------------------------------------------------------------------------------------------
+insert_front:	
+        # salvamento de registradores
+        addi sp, sp, -16
         sw s0, 0(sp)
-        addi sp, sp, -4
-        sw ra, 0(sp)
+        sw s1, 4(sp)
+        sw s2, 8(sp)
+        sw ra, 12(sp)
 
-        # Armazenamento de argumento
-        mv s0, a0
-        mv t1, a1
-        mv t2, a2
-                                
-        # Criacao de novo vagao
-        mv a0, a1
-        mv a1, a2
-        addi a2, zero, 0
+        # Salvamento de argumentos
+        add s0, a0, zero # s0 = &locomotiva
+        add s1, a1, zero # s1 = id
+        add s2, a2, zero # s2 = tipo
+
+        # Verificacao de id
+        add a0, s0, zero
+        add a1, s1, zero
+        call verify_id # a0 = 0 ou 1
+        beq a0, zero, _insert_front_id_valido
+        # Caso id ja inserido no vagao
+        addi a0, zero, 2 # codigo de id ja inserido
+        j _end_insert_front 
+
+_insert_front_id_valido:
+        # Verificacao de tipo
+        blt s2, zero, _insert_front_tipo_invalido
+        addi t0, zero, 3
+        blt t0, s2, _insert_front_tipo_invalido
+        
+        # Caso tipo valido - criacao de novo vagao
+        add a0, s1, zero
+        add a1, s2, zero
+        lw a2, 8(s0) # a2 = locomotiva.prox
         call create_wagon # a0 = &vagao_criado
         
-        # Atualizar prox.vagao do novo vagao
-        lw t0, 8(s0) # t0 = locomotiva.prox_vagao
-        sw t0, 8(a0) # vagao_criado.prox_vagao = locomotiva.prox_vagao
-        
-        sw a0, 8(s0) # locomotiva.prox_vagao = &vagao_criado
-        
+        # Atualizar locomotiva.prox
+        sw a0, 8(s0) # locomotiva.prox = &vagao_criado
+       
+        # Codigo de sucesso
+        add a0, zero, zero
+
+        j _end_insert_front
+
+_insert_front_tipo_invalido:
+        addi a0, zero, 1 # codigo de tipo invalido
+
+_end_insert_front:
         # Restauracao de registradores
-        lw ra, 0(sp)
-        addi sp, sp, 4
         lw s0, 0(sp)
-        addi sp, sp, 4
-        
+        lw s1, 4(sp)
+        lw s2, 8(sp)
+        lw ra, 12(sp)
+        addi sp, sp, 16
+
         ret
 
-# -----------------------------------------------
+# ----------------------------------------------------------------------------------------------
 # insert_back
 # argumentos:
-#	- a0 : endereco da locomotiva
-#	- a1 : ID
-#	- a2 : tipo
-# -----------------------------------------------
+#	    - a0 : endereco da locomotiva
+#	    - a1 : ID
+#	    - a2 : tipo
+# ----------------------------------------------------------------------------------------------
 insert_back:	# salvamento de registradores
         addi sp, sp, -4
         sw s0, 0(sp)
