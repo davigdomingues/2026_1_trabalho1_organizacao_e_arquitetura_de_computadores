@@ -24,11 +24,13 @@
         msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
         msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
 
+
+
         .align 2
 
 menu_tabela:
         .word opcao_insert_front
-        .word opcao_add_back
+        .word opcao_insert_back
         .word opcao_remover
         .word opcao_listar
         .word opcao_buscar
@@ -49,6 +51,13 @@ ins_front_tabela:
         .word _ins_front_case_tipo_invalido # status 1 = tipo invalido
         .word _ins_front_case_id_invalido # status 2 = id invalido
         .word _ins_front_case_id_ja_inserido # status 3 = id ja inserido
+
+# tabela de operacoes de casos durante a adicao de vagao no fim
+ins_back_tabela:
+        .word _ins_back_case_ok # status 0 = ok
+        .word _ins_back_case_tipo_invalido # status 1 = tipo invalido
+        .word _ins_back_case_id_invalido # status 2 = id invalido
+        .word _ins_back_case_id_ja_inserido # status 3 = id ja inserido
 
 .text
         .align 2
@@ -99,18 +108,132 @@ menu_loop:
 
 # Handlers das opções
 opcao_insert_front:
-        la a0, msg_ok
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
+        # Solicitação do ID - a1 = id
+        la a0, msg_id_vagao
+        li a7, 4
+        ecall
+        li a7, 5
+        ecall
+        mv a1, a0 
+
+        # Solicitacao do tipo - a2 = tipo
+        la a0, msg_tipo_vagao
+        li a7, 4
+        ecall
+        li a7, 5
+        ecall
+        mv a2, a0
+
+        # carregamento da head (economia de operação de deslocamento da pilha)
+        la t0, train_head
+        lw a0, 0(t0) # a0 = &locomotiva (head/sentinela)
+        call insert_front  # (a0 = head, a1 = id, a2 = tipo) -> a0 = status
+
+        lw ra, 0(sp)
+        addi sp, sp, 4
+
+        # Status em a0: 0..3
+        mv t0, a0
+
+        # switch via tabela (igual menu_loop)
+        slli t0, t0, 2
+        la t1, ins_front_tabela
+
+        add t1, t1, t0
+        lw t2, 0(t1)
+
+        jalr zero, t2, 0 #jr r2
+
+_ins_front_case_ok:
+        la a0, msg_add_ok_front
+        j _ins_front_print_and_ret
+
+_ins_front_case_tipo_invalido: 
+        la a0, msg_tipo_invalido
+        j _ins_front_print_and_ret
+
+_ins_front_case_id_invalido:
+        la a0, msg_id_invalido
+        j _ins_front_print_and_ret
+
+_ins_front_case_id_ja_inserido:
+        la a0, msg_id_duplicado
+        j _ins_front_print_and_ret
+
+_ins_front_print_and_ret:
         li a7, 4
         ecall
 
         ret
 
-opcao_add_back:
-        la a0, msg_ok
+opcao_insert_back:
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
+        # Solicitação do ID - a1 = id
+        la a0, msg_id_vagao
+        li a7, 4
+        ecall
+        li a7, 5
+        ecall
+        mv a1, a0 
+
+        # Solicitacao do tipo - a2 = tipo
+        la a0, msg_tipo_vagao
+        li a7, 4
+        ecall
+        li a7, 5
+        ecall
+        mv a2, a0
+
+        # carregamento da head (economia de operação de deslocamento da pilha)
+        la t0, train_head
+        lw a0, 0(t0) # a0 = &locomotiva (head/sentinela)
+        call insert_back  # (a0 = head, a1 = id, a2 = tipo) -> a0 = status
+
+        lw ra, 0(sp)
+        addi sp, sp, 4
+
+        # Status em a0: 0..3
+        mv t0, a0
+
+        # switch via tabela (igual menu_loop)
+        slli t0, t0, 2
+        la t1, ins_back_tabela
+
+        add t1, t1, t0
+        lw t2, 0(t1)
+
+        jalr zero, t2, 0 #jr r2
+
+_ins_back_case_ok:
+        la a0, msg_add_ok_back
+        j _ins_back_print_and_ret
+
+_ins_back_case_tipo_invalido: 
+        la a0, msg_tipo_invalido
+        j _ins_back_print_and_ret
+
+_ins_back_case_id_invalido:
+        la a0, msg_id_invalido
+        j _ins_back_print_and_ret
+
+_ins_back_case_id_ja_inserido:
+        la a0, msg_id_duplicado
+        j _ins_back_print_and_ret
+
+_ins_back_print_and_ret:
         li a7, 4
         ecall
 
         ret
+
+
 
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
 opcao_remover:
