@@ -26,6 +26,7 @@
 
 
 
+
         .align 2
 
 menu_tabela:
@@ -452,7 +453,8 @@ _insert_front_verificacao_se_id_ja_inserido:
 
 _insert_front_id_valido:
         # Verificacao de tipo
-        blt s2, zero, _insert_front_tipo_invalido
+        addi t0, zero, 1
+        blt s2, t0, _insert_front_tipo_invalido
         addi t0, zero, 3
         blt t0, s2, _insert_front_tipo_invalido
         
@@ -525,7 +527,8 @@ _insert_back_verificacao_se_id_ja_inserido:
 
 _insert_back_id_valido:
         # Verificacao de tipo
-        blt s2, zero, _insert_back_tipo_invalido
+        addi t0, zero, 1
+        blt s2, t0, _insert_back_tipo_invalido
         addi t0, zero, 3
         blt t0, s2, _insert_back_tipo_invalido
         
