@@ -156,25 +156,20 @@ opcao_insert_front:
 
 _ins_front_case_ok:
         la a0, msg_add_ok_front
-        j _ins_front_print_and_ret
+        j _print_and_ret
 
 _ins_front_case_tipo_invalido: 
         la a0, msg_type_invalid
-        j _ins_front_print_and_ret
+        j _print_and_ret
 
 _ins_front_case_id_invalido:
         la a0, msg_id_invalid
-        j _ins_front_print_and_ret
+        j _print_and_ret
 
 _ins_front_case_id_ja_inserido:
         la a0, msg_id_duplicate
-        j _ins_front_print_and_ret
+        j _print_and_ret
 
-_ins_front_print_and_ret:
-        li a7, 4
-        ecall
-
-        ret
 
 opcao_insert_back:
         # Salvamento de ra na pilha
@@ -219,26 +214,19 @@ opcao_insert_back:
 
 _ins_back_case_ok:
         la a0, msg_add_ok_back
-        j _ins_back_print_and_ret
+        j _print_and_ret
 
 _ins_back_case_tipo_invalido: 
         la a0, msg_type_invalid
-        j _ins_back_print_and_ret
+        j _print_and_ret
 
 _ins_back_case_id_invalido:
         la a0, msg_id_invalid
-        j _ins_back_print_and_ret
+        j _print_and_ret
 
 _ins_back_case_id_ja_inserido:
         la a0, msg_id_duplicate
-        j _ins_back_print_and_ret
-
-_ins_back_print_and_ret:
-        li a7, 4
-        ecall
-
-        ret
-
+        j _print_and_ret
 
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
 opcao_remover:
@@ -282,29 +270,24 @@ opcao_remover:
 
 _rem_case_default:
         la a0, msg_invalid
-        j _rem_print_and_ret
+        j _print_and_ret
 
 _rem_case_ok:
         la a0, msg_remove_ok
-        j _rem_print_and_ret
+        j _print_and_ret
 
 _rem_case_nao_encontrado:
         la a0, msg_wagon_not_found
-        j _rem_print_and_ret
+        j _print_and_ret
 
 _rem_case_id_invalido:
         la a0, msg_id_invalid
-        j _rem_print_and_ret
+        j _print_and_ret
 
 _rem_case_sem_remocao:
         la a0, msg_sem_remocao
-        j _rem_print_and_ret
+        j _print_and_ret
 
-_rem_print_and_ret:
-        li a7, 4
-        ecall
-
-        ret
 
 opcao_listar:
         la a0, msg_ok
@@ -331,17 +314,12 @@ opcao_buscar:
         lw a0, 0(t0) # a0 = &locomotiva (head/sentinela)
 	call search_wagon
 	
-        # Carregamento de ra na pilha
+        # Carregamento de ra da pilha
         lw ra, 0(sp)
         addi sp, sp, 4
 
         # Status em a0: 0..3
         mv t0, a0
-
-        # Validação de intervalo [0..3]
-        bltz t0, _search_case_default
-        li t1, 3
-        bgt t0, t1, _search_case_default
 
         # switch via tabela 
         slli t0, t0, 2
@@ -352,26 +330,18 @@ opcao_buscar:
 
         jalr zero, t2, 0
 
-_search_case_default:
-        la a0, msg_invalid
-        j _search_print_and_ret
-
 _search_case_ok:
         la a0, msg_search_ok
-        j _search_print_and_ret
+        j _print_and_ret
 
 _search_case_nao_encontrado:
         la a0, msg_wagon_not_found
-        j _search_print_and_ret
+        j _print_and_ret
 
 _search_case_id_invalido:
         la a0, msg_id_invalid
-        j _search_print_and_ret
+        j _print_and_ret
 
-_search_print_and_ret:
-        li a7, 4
-        ecall
-        ret
 
 
 opcao_invalida:
@@ -386,6 +356,12 @@ opcao_sair:
         ecall
 
 
+#Funções comuns a mais de uma opção 
+
+_print_and_ret:
+        li a7, 4
+        ecall
+        ret
 # -----------------------------------------------
 # create_wagon
 # argumentos:
