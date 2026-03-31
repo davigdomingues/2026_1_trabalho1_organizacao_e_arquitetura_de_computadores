@@ -46,24 +46,17 @@ rem_tabela:
         .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
 
 # tabela de operacoes de casos durante a adicao de vagao no inicio
-ins_front_tabela:
-        .word _ins_front_case_ok # status 0 = ok
-        .word _ins_front_case_tipo_invalido # status 1 = tipo invalido
-        .word _ins_front_case_id_invalido # status 2 = id invalido
-        .word _ins_front_case_id_ja_inserido # status 3 = id ja inserido
-
-# tabela de operacoes de casos durante a adicao de vagao no fim
-ins_back_tabela:
-        .word _ins_back_case_ok # status 0 = ok
-        .word _ins_back_case_tipo_invalido # status 1 = tipo invalido
-        .word _ins_back_case_id_invalido # status 2 = id invalido
-        .word _ins_back_case_id_ja_inserido # status 3 = id ja inserido
+ins_tabela:
+        .word _ins_case_ok # status 0 = ok
+        .word _ins_case_invalid_type # status 1 = tipo invalido
+        .word _ins_case_invalid_id # status 2 = id invalido
+        .word _ins_case_id_already_inserted # status 3 = id ja inserido
 
 #tabela para operações de casos durante busca de vagão por id
 search_tabela:
         .word _search_case_ok # status 0 = ok
-        .word _search_case_id_invalido # status 1 = id invalido
-        .word _search_case_nao_encontrado # status 2 = id não encontrado
+        .word _search_case_invalid_id # status 1 = id invalido
+        .word _search_case_not_found # status 2 = id não encontrado
 
 .text
         .align 2
@@ -147,29 +140,12 @@ opcao_insert_front:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_front_tabela
+        la t1, ins_tabela
 
         add t1, t1, t0
         lw t2, 0(t1)
 
         jalr zero, t2, 0 #jr r2
-
-_ins_front_case_ok:
-        la a0, msg_add_ok_front
-        j _print_and_ret
-
-_ins_front_case_tipo_invalido: 
-        la a0, msg_type_invalid
-        j _print_and_ret
-
-_ins_front_case_id_invalido:
-        la a0, msg_id_invalid
-        j _print_and_ret
-
-_ins_front_case_id_ja_inserido:
-        la a0, msg_id_duplicate
-        j _print_and_ret
-
 
 opcao_insert_back:
         # Salvamento de ra na pilha
@@ -205,28 +181,13 @@ opcao_insert_back:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_back_tabela
+        la t1, ins_tabela
 
         add t1, t1, t0
         lw t2, 0(t1)
 
         jalr zero, t2, 0 #jr r2
 
-_ins_back_case_ok:
-        la a0, msg_add_ok_back
-        j _print_and_ret
-
-_ins_back_case_tipo_invalido: 
-        la a0, msg_type_invalid
-        j _print_and_ret
-
-_ins_back_case_id_invalido:
-        la a0, msg_id_invalid
-        j _print_and_ret
-
-_ins_back_case_id_ja_inserido:
-        la a0, msg_id_duplicate
-        j _print_and_ret
 
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
 handle_remove_wagon:
@@ -276,11 +237,11 @@ _rem_case_ok:
         la a0, msg_remove_ok
         j _print_and_ret
 
-_rem_case_nao_encontrado:
+_rem_case_not_found:
         la a0, msg_wagon_not_found
         j _print_and_ret
 
-_rem_case_id_invalido:
+_rem_case_invalid_id:
         la a0, msg_id_invalid
         j _print_and_ret
 
@@ -334,11 +295,11 @@ _search_case_ok:
         la a0, msg_search_ok
         j _print_and_ret
 
-_search_case_nao_encontrado:
+_search_case_not_found:
         la a0, msg_wagon_not_found
         j _print_and_ret
 
-_search_case_id_invalido:
+_search_case_invalid_id:
         la a0, msg_id_invalid
         j _print_and_ret
 
@@ -356,7 +317,24 @@ opcao_sair:
 
 
 #Funções comuns a mais de uma opção 
+## Funções de retorno de inserção (fim e inicio)
+_ins_case_ok:
+        la a0, msg_add_ok_back
+        j _print_and_ret
 
+_ins_case_invalid_type: 
+        la a0, msg_type_invalid
+        j _print_and_ret
+
+_ins_case_invalid_id:
+        la a0, msg_id_invalid
+        j _print_and_ret
+
+_ins_case_id_already_inserted:
+        la a0, msg_id_duplicate
+        j _print_and_ret
+
+## Todas as funções de retorno 
 _print_and_ret:
         li a7, 4
         ecall
