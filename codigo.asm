@@ -20,12 +20,9 @@
         msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
 
-        # Mensagens usadas pelo remover
+        # Mensagens usadas por opcao_remover
         msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
         msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
-
-
-
 
         .align 2
 
@@ -588,21 +585,24 @@ _end_insert_back:
 #       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
 # ----------------------------------------------------------------------------------------------
 remove_wagon:
+        # Condicional para a remoção do vagão identificado
         bltz a1, _rem_ret_id_invalido
         beqz a1, _rem_ret_sem_remocao
 
         mv t3, a0 # prev = locomotiva
         lw t2, 8(a0) # curr = locomotiva.prox
 
+# Iteração para a lógica de remove_wagon
 _rem_loop:
         beqz t2, _rem_ret_nao_encontrado
         lw t4, 0(t2) # curr.id
-        beq t4, a1, _rem_found
+        beq t4, a1, _rem_found # Vagão encontrado
 
         mv t3, t2
         lw t2, 8(t2)
         j _rem_loop
 
+# Atualização das referências da lista encadeada simples
 _rem_found:
         lw t5, 8(t2) # curr.prox
         sw t5, 8(t3) # prev.prox = curr.prox
