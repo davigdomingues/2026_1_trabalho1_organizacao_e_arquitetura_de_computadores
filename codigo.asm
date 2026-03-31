@@ -343,7 +343,6 @@ _search_case_id_invalido:
         j _print_and_ret
 
 
-
 opcao_invalida:
         la a0, msg_invalid
         li a7, 4
@@ -666,17 +665,16 @@ _rem_ret_sem_remocao:
 # ----------------------------------------------------------------------------------------------
 search_wagon: 
         
-        mv t1, a1 # copia ID de a0 para t1
-        bltz t1, _search_invalid_id # if (t1 < 0) invalid_id(); 
-        mv t0, a0
+        mv t1, a1 # copia ID alvo para t1
+        bltz t1, _search_invalid_id # se (t1 < 0) id inválido
+        mv t0, a0 # t0 = ponteiro para nó atual
 
 loop_search: 
-        beqz t0, _search_id_not_found # if (a1 == NULL) id_not_found();
-        lw t2, 0(t0) # t1 = locomotiva.id 
-        beq t2, t1, _search_id_found # if (t1 == t2) id_found();
-        lw t0, 8(t0) # t2 = locomotiva.prox
-        
-	j loop_search # continua o loop
+        beqz t0, _search_id_not_found # se (t0 == NULL) não encontrado
+        lw t2, 0(t0) # t2 = nó_atual.id
+        beq t2, t1, _search_id_found # se (t2 == t1) encontrado
+        lw t0, 8(t0) # t0 = nó_atual.prox
+        j loop_search # continua o loop
 
 _search_id_found: 
         li a0, 0
@@ -686,4 +684,4 @@ _search_invalid_id:
         ret
 _search_id_not_found: 
         li a0, 2
-        ret   
+        ret
