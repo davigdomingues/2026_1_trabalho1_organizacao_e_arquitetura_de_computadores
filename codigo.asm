@@ -24,8 +24,14 @@
         msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
         msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
 
-
-
+        # Mensagens usadas para listar
+        msg_listar_vazio: .asciz "\nO trem não possui nenhum vagão\n\n"
+        msg_listar_1: .asciz "ID: "
+        msg_listar_2: .asciz "; Tipo: "
+        msg_listar_jump_line: .asciz "\n"
+        msg_listar_tipo_carga: .asciz "Carga"
+        msg_listar_tipo_passageiro: .asciz "Passageiro"
+        msg_listar_tipo_combustivel: .asciz "Combustível"
 
         .align 2
 
@@ -303,7 +309,68 @@ _rem_print_and_ret:
         ret
 
 opcao_listar:
-        la a0, msg_ok
+        # Carrega cabeça do vagão
+        la t0, train_head
+        lw a0, 0(t0)
+
+        # Carrega primeiro vagão e checa existência
+        lw t1, 8(a0)
+        beqz t1, _list_empty
+
+        la a0, msg_listar_jump_line
+        li a7, 4
+        ecall
+
+
+_print_loop:
+        # Imprime id
+        la a0, msg_listar_1
+        li a7, 4
+        ecall
+
+        lw a0, 0(t1)
+        li a7, 1
+        ecall
+
+        # Imprime tipo
+        la a0, msg_listar_2
+        li a7, 4
+        ecall
+        
+        lw t0, 4(t1)
+        addi t0, t0, -1
+        beqz t0, _list_print_cargo
+        addi t0, t0, -1
+        beqz t0, _list_print_passenger
+        addi t0, t0, -1
+        beqz t0, _list_print_fuel
+
+_list_print_cargo:
+        la a0, msg_listar_tipo_carga
+        j _list_continue
+_list_print_passenger:
+        la a0, msg_listar_tipo_passageiro
+        j _list_continue
+_list_print_fuel:
+        la a0, msg_listar_tipo_combustivel
+
+_list_continue:
+        li a7, 4
+        ecall
+
+        la a0, msg_listar_jump_line
+        li a7, 4
+        ecall
+
+        lw t1, 8(t1)
+        bnez t1, _print_loop
+
+        ecall
+        ret
+
+_list_empty:
+        # Caso do trem vazio
+        la a0, msg_listar_vazio
         li a7, 4
         ecall
 
