@@ -31,7 +31,7 @@
 menu_tabela:
         .word opcao_insert_front
         .word opcao_insert_back
-        .word opcao_remover
+        .word handle_remove_wagon
         .word opcao_listar
         .word opcao_buscar
         .word opcao_sair
@@ -41,9 +41,9 @@ menu_tabela:
 # tabela de operações de casos durante a remoção do vagão, via ID
 rem_tabela:
         .word _rem_case_ok # status 0 = ok
-        .word _rem_case_nao_encontrado # status 1 = não encontrado
-        .word _rem_case_id_invalido # status 2 = id inválido
-        .word _rem_case_sem_remocao # status 3 = locomotiva
+        .word _rem_case_not_found # status 1 = não encontrado
+        .word _rem_case_invalid_id # status 2 = id inválido
+        .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
 
 # tabela de operacoes de casos durante a adicao de vagao no inicio
 ins_front_tabela:
@@ -229,7 +229,7 @@ _ins_back_case_id_ja_inserido:
         j _print_and_ret
 
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
-opcao_remover:
+handle_remove_wagon:
         # Salvamento de ra na pilha
         addi sp, sp, -4
         sw ra, 0(sp)
@@ -284,7 +284,7 @@ _rem_case_id_invalido:
         la a0, msg_id_invalid
         j _print_and_ret
 
-_rem_case_sem_remocao:
+_rem_case_cannot_remove_locomotive:
         la a0, msg_sem_remocao
         j _print_and_ret
 
@@ -486,7 +486,8 @@ _insert_front_verificacao_se_id_ja_inserido:
 
 _insert_front_id_valido:
         # Verificacao de tipo
-        blt s2, zero, _insert_front_tipo_invalido
+        addi t0, zero, 1
+        blt s2, t0, _insert_front_tipo_invalido
         addi t0, zero, 3
         blt t0, s2, _insert_front_tipo_invalido
         
@@ -559,7 +560,8 @@ _insert_back_verificacao_se_id_ja_inserido:
 
 _insert_back_id_valido:
         # Verificacao de tipo
-        blt s2, zero, _insert_back_tipo_invalido
+        addi t0, zero, 1
+        blt s2, t0, _insert_back_tipo_invalido
         addi t0, zero, 3
         blt t0, s2, _insert_back_tipo_invalido
         
@@ -619,21 +621,24 @@ _end_insert_back:
 #       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
 # ----------------------------------------------------------------------------------------------
 remove_wagon:
-        bltz a1, _rem_ret_id_invalido
-        beqz a1, _rem_ret_sem_remocao
+        # Condicional para a remoção do vagão identificado
+        bltz a1, _rem_ret_invalid_id
+        beqz a1, _rem_ret_no_remotion
 
         mv t3, a0 # prev = locomotiva
         lw t2, 8(a0) # curr = locomotiva.prox
 
+# Iteração para a lógica de remove_wagon
 _rem_loop:
-        beqz t2, _rem_ret_nao_encontrado
+        beqz t2, _rem_ret_not_found
         lw t4, 0(t2) # curr.id
-        beq t4, a1, _rem_found
+        beq t4, a1, _rem_found # Vagão encontrado
 
         mv t3, t2
         lw t2, 8(t2)
         j _rem_loop
 
+# Atualização das referências da lista encadeada simples
 _rem_found:
         lw t5, 8(t2) # curr.prox
         sw t5, 8(t3) # prev.prox = curr.prox
@@ -641,15 +646,15 @@ _rem_found:
         li a0, 0
         ret
 
-_rem_ret_nao_encontrado:
+_rem_ret_not_found:
         li a0, 1
         ret
 
-_rem_ret_id_invalido:
+_rem_ret_invalid_id:
         li a0, 2
         ret
 
-_rem_ret_sem_remocao:
+_rem_ret_no_remotion:
         li a0, 3
         ret
 
