@@ -20,7 +20,7 @@
         msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
 
-        # Mensagens usadas por opcao_remover
+        # Mensagens usadas por handle_remove_wagon
         msg_nao_encontrado: .asciz "Vagão não encontrado.\n\n"
         msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
 
@@ -29,7 +29,7 @@
 menu_tabela:
         .word opcao_insert_front
         .word opcao_insert_back
-        .word opcao_remover
+        .word handle_remove_wagon
         .word opcao_listar
         .word opcao_buscar
         .word opcao_sair
@@ -39,9 +39,9 @@ menu_tabela:
 # tabela de operações de casos durante a remoção do vagão, via ID
 rem_tabela:
         .word _rem_case_ok # status 0 = ok
-        .word _rem_case_nao_encontrado # status 1 = não encontrado
-        .word _rem_case_id_invalido # status 2 = id inválido
-        .word _rem_case_sem_remocao # status 3 = locomotiva
+        .word _rem_case_not_found # status 1 = não encontrado
+        .word _rem_case_invalid_id # status 2 = id inválido
+        .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
 
 # tabela de operacoes de casos durante a adicao de vagao no inicio
 ins_front_tabela:
@@ -231,10 +231,8 @@ _ins_back_print_and_ret:
 
         ret
 
-
-
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
-opcao_remover:
+handle_remove_wagon:
         # Salvamento de ra na pilha
         addi sp, sp, -4
         sw ra, 0(sp)
@@ -275,25 +273,25 @@ opcao_remover:
 
 _rem_case_default:
         la a0, msg_invalid
-        j _rem_print_and_ret
+        j _rem_print_and_return
 
 _rem_case_ok:
         la a0, msg_remove_ok
-        j _rem_print_and_ret
+        j _rem_print_and_return
 
-_rem_case_nao_encontrado:
+_rem_case_not_found:
         la a0, msg_nao_encontrado
-        j _rem_print_and_ret
+        j _rem_print_and_return
 
-_rem_case_id_invalido:
+_rem_case_invalid_id:
         la a0, msg_id_invalido
-        j _rem_print_and_ret
+        j _rem_print_and_return
 
-_rem_case_sem_remocao:
+_rem_case_cannot_remove_locomotive:
         la a0, msg_sem_remocao
-        j _rem_print_and_ret
+        j _rem_print_and_return
 
-_rem_print_and_ret:
+_rem_print_and_return:
         li a7, 4
         ecall
 
@@ -586,15 +584,15 @@ _end_insert_back:
 # ----------------------------------------------------------------------------------------------
 remove_wagon:
         # Condicional para a remoção do vagão identificado
-        bltz a1, _rem_ret_id_invalido
-        beqz a1, _rem_ret_sem_remocao
+        bltz a1, _rem_ret_invalid_id
+        beqz a1, _rem_ret_no_remotion
 
         mv t3, a0 # prev = locomotiva
         lw t2, 8(a0) # curr = locomotiva.prox
 
 # Iteração para a lógica de remove_wagon
 _rem_loop:
-        beqz t2, _rem_ret_nao_encontrado
+        beqz t2, _rem_ret_not_found
         lw t4, 0(t2) # curr.id
         beq t4, a1, _rem_found # Vagão encontrado
 
@@ -610,14 +608,14 @@ _rem_found:
         li a0, 0
         ret
 
-_rem_ret_nao_encontrado:
+_rem_ret_not_found:
         li a0, 1
         ret
 
-_rem_ret_id_invalido:
+_rem_ret_invalid_id:
         li a0, 2
         ret
 
-_rem_ret_sem_remocao:
+_rem_ret_no_remotion:
         li a0, 3
         ret
