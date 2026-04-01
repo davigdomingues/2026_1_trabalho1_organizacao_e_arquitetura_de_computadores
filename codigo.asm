@@ -692,11 +692,11 @@ _rem_ret_no_remotion:
 #       - a1 : ID alvo da busca
 # retorno:
 #       - a0: 
-             0 : encontrado com sucesso
+#             0 : encontrado com sucesso
 #            1 : ID inválido (ID < 0)
 #            2 : não encontrado
 #       - a2: 
-             (se a0 == 0) endereco do nó encontrado
+#             (se a0 == 0) endereco do nó encontrado
 # ----------------------------------------------------------------------------------------------
 search_wagon: 
         
