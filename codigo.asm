@@ -652,17 +652,9 @@ _rem_ret_sem_remocao:
 # list_train
 # argumentos:
 #       - a0 : endereco da locomotiva (head/sentinela)
-#
 # retorno (a0):
 #       - 0 : Vagões impressos com sucesso
 #       - 1 : Trem vazio (sem vagões)
-#
-# observações:
-#       1 - Nó: [0] = id, [4] = tipo, [8] = prox
-#
-#       2 - A função foi transformada em uma Função Folha. Como ela não executa 
-#       chamadas (call/jal) internamente, o registrador 'ra'permanece intacto. 
-#       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
 # ----------------------------------------------------------------------------------------------
 list_train:
         # Carrega primeiro vagão e checa existência
