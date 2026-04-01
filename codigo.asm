@@ -26,6 +26,15 @@
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
         msg_search_ok: .asciz "Vagão foi encontrado com sucesso.\n\n"
 
+        # Mensagem para printar dados de vagão encontrado 
+        next_line: .asciz "\n"
+        msg_type: .asciz "Tipo: "
+        msg_ID: .asciz "ID: "
+        msg_cargo: .asciz "Vagão de Carga\n"
+        msg_passenger: .asciz "Vagão de Passageiro\n"
+        msg_fuel: .asciz "Vagão de Combustível\n"
+
+
         .align 2
 
 menu_tabela:
@@ -291,8 +300,50 @@ opcao_buscar:
 
         jalr zero, t2, 0
 
+
 _search_case_ok:
-        la a0, msg_search_ok
+        # a2 contém o endereço do nó encontrado
+        # Carrega ID
+        lw t0, 0(a2)         # t0 = id
+        # Carrega tipo
+        lw t1, 4(a2)         # t1 = tipo
+
+        # Imprime ID
+        la a0, msg_ID
+        li a7, 4
+        ecall
+        mv a0, t0
+        li a7, 1
+        ecall
+
+        # Imprime nova linha
+        la a0, next_line
+        li a7, 4
+        ecall
+
+        # Imprime tipo
+        la a0, msg_type
+        li a7, 4
+        ecall
+        # Seleciona mensagem do tipo
+        li t2, 1
+        beq t1, t2, _print_tipo_carga
+        li t2, 2
+        beq t1, t2, _print_tipo_passageiro
+        li t2, 3
+        beq t1, t2, _print_tipo_combustivel
+        j _print_and_ret
+
+_print_tipo_carga:
+        la a0, msg_cargo
+        j _print_and_ret
+
+_print_tipo_passageiro:
+        la a0, msg_passenger
+        j _print_and_ret
+
+_print_tipo_combustivel:
+        la a0, msg_fuel
         j _print_and_ret
 
 _search_case_not_found:
@@ -650,16 +701,19 @@ search_wagon:
         
         mv t1, a1 # copia ID alvo para t1
         bltz t1, _search_invalid_id # se (t1 < 0) id inválido
+        beqz t1, _search_invalid_id # se (t1 == 0) id inválido (locomotiva)
         mv t0, a0 # t0 = ponteiro para nó atual
 
 loop_search: 
         beqz t0, _search_id_not_found # se (t0 == NULL) não encontrado
         lw t2, 0(t0) # t2 = nó_atual.id
+        lw t3, 4(t0) # t3 = nó_atual.tipo
         beq t2, t1, _search_id_found # se (t2 == t1) encontrado
         lw t0, 8(t0) # t0 = nó_atual.prox
         j loop_search # continua o loop
 
 _search_id_found: 
+        mv a2, t0 # a2 = endereço do nó encontrado
         li a0, 0
         ret        
 _search_invalid_id: 
