@@ -309,72 +309,30 @@ _rem_print_and_ret:
         ret
 
 opcao_listar:
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
         # Carrega cabeça do vagão
         la t0, train_head
         lw a0, 0(t0)
 
-        # Carrega primeiro vagão e checa existência
-        lw t1, 8(a0)
-        beqz t1, _list_empty
-
-        la a0, msg_listar_jump_line
-        li a7, 4
-        ecall
+        call list_train # (a0 = head) -> a0 = status
 
 
-_print_loop:
-        # Imprime id
-        la a0, msg_listar_1
-        li a7, 4
-        ecall
+        lw ra, 0(sp)
+        addi sp, sp, 4
 
-        lw a0, 0(t1)
-        li a7, 1
-        ecall
-
-        # Imprime tipo
-        la a0, msg_listar_2
-        li a7, 4
-        ecall
-        
-        lw t0, 4(t1)
-        addi t0, t0, -1
-        beqz t0, _list_print_cargo
-        addi t0, t0, -1
-        beqz t0, _list_print_passenger
-        addi t0, t0, -1
-        beqz t0, _list_print_fuel
-
-_list_print_cargo:
-        la a0, msg_listar_tipo_carga
-        j _list_continue
-_list_print_passenger:
-        la a0, msg_listar_tipo_passageiro
-        j _list_continue
-_list_print_fuel:
-        la a0, msg_listar_tipo_combustivel
-
-_list_continue:
-        li a7, 4
-        ecall
-
-        la a0, msg_listar_jump_line
-        li a7, 4
-        ecall
-
-        lw t1, 8(t1)
-        bnez t1, _print_loop
-
-        ecall
+        bnez a0, _list_empty_case
         ret
 
-_list_empty:
-        # Caso do trem vazio
+_list_empty_case:
         la a0, msg_listar_vazio
         li a7, 4
         ecall
 
         ret
+
 
 opcao_buscar:
         la a0, msg_ok
@@ -687,4 +645,84 @@ _rem_ret_id_invalido:
 
 _rem_ret_sem_remocao:
         li a0, 3
+        ret
+
+
+# ----------------------------------------------------------------------------------------------
+# list_train
+# argumentos:
+#       - a0 : endereco da locomotiva (head/sentinela)
+#
+# retorno (a0):
+#       - 0 : Vagões impressos com sucesso
+#       - 1 : Trem vazio (sem vagões)
+#
+# observações:
+#       1 - Nó: [0] = id, [4] = tipo, [8] = prox
+#
+#       2 - A função foi transformada em uma Função Folha. Como ela não executa 
+#       chamadas (call/jal) internamente, o registrador 'ra'permanece intacto. 
+#       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
+# ----------------------------------------------------------------------------------------------
+list_train:
+        # Carrega primeiro vagão e checa existência
+        lw t1, 8(a0)
+        beqz t1, _list_empty
+
+        la a0, msg_listar_jump_line
+        li a7, 4
+        ecall
+
+
+_list_print_loop:
+        # Imprime id
+        la a0, msg_listar_1
+        li a7, 4
+        ecall
+
+        lw a0, 0(t1)
+        li a7, 1
+        ecall
+
+        # Imprime tipo
+        la a0, msg_listar_2
+        li a7, 4
+        ecall
+        
+        lw t0, 4(t1)
+        addi t0, t0, -1
+        beqz t0, _list_print_cargo
+        addi t0, t0, -1
+        beqz t0, _list_print_passenger
+        addi t0, t0, -1
+        beqz t0, _list_print_fuel
+
+_list_print_cargo:
+        la a0, msg_listar_tipo_carga
+        j _list_continue
+_list_print_passenger:
+        la a0, msg_listar_tipo_passageiro
+        j _list_continue
+_list_print_fuel:
+        la a0, msg_listar_tipo_combustivel
+
+_list_continue:
+        li a7, 4
+        ecall
+
+        la a0, msg_listar_jump_line
+        li a7, 4
+        ecall
+
+        lw t1, 8(t1)
+        bnez t1, _list_print_loop
+
+        ecall
+
+        li a0, 0
+        ret
+
+_list_empty:
+        li a0 1
+
         ret
