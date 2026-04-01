@@ -18,7 +18,7 @@
         msg_id_duplicate: .asciz "ID já existente no trem. Escolha outro ID.\n\n"
         msg_type_invalid: .asciz "Tipo inválido. Use 1, 2 ou 3.\n\n"
         msg_wagon_not_found: .asciz "Vagão não encontrado.\n\n"
-        msg_sem_remocao: .asciz "Não é possível remover a locomotiva.\n\n"
+        msg_cannot_remove_locomotive: .asciz "Não é possível remover a locomotiva.\n\n"
 
         # Mensagens de sucesso da operação
         msg_add_ok_front: .asciz "Vagão adicionado no início.\n\n"
@@ -37,32 +37,32 @@
 
         .align 2
 
-menu_tabela:
-        .word opcao_insert_front
-        .word opcao_insert_back
+menu_table:
+        .word option_insert_front
+        .word option_insert_back
         .word handle_remove_wagon
-        .word opcao_listar
-        .word opcao_buscar
-        .word opcao_sair
+        .word option_list
+        .word option_search
+        .word option_exit
 
         .align 2
 
 # tabela de operações de casos durante a remoção do vagão, via ID
-rem_tabela:
+rem_table:
         .word _rem_case_ok # status 0 = ok
         .word _rem_case_not_found # status 1 = não encontrado
         .word _rem_case_invalid_id # status 2 = id inválido
         .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
 
-# tabela de operacoes de casos durante a adicao de vagao no inicio
-ins_tabela:
+# tabela de operacoes de casos durante a adicao de vagao no inicio/fim
+ins_table:
         .word _ins_case_ok # status 0 = ok
         .word _ins_case_invalid_type # status 1 = tipo invalido
         .word _ins_case_invalid_id # status 2 = id invalido
         .word _ins_case_id_already_inserted # status 3 = id ja inserido
 
 #tabela para operações de casos durante busca de vagão por id
-search_tabela:
+search_table:
         .word _search_case_ok # status 0 = ok
         .word _search_case_invalid_id # status 1 = id invalido
         .word _search_case_not_found # status 2 = id não encontrado
@@ -99,14 +99,14 @@ menu_loop:
 
         # Valida intervalo [1..6]
         li t1, 1
-        blt t0, t1, opcao_invalida
+        blt t0, t1, option_invalid
         li t1, 6
-        bgt t0, t1, opcao_invalida
+        bgt t0, t1, option_invalid
 
-        # Índice = opção - 1 (em relação ao menu_tabela)
+        # Índice = opção - 1 (em relação ao menu_table)
         addi t0, t0, -1
         slli t0, t0, 2 # offset = (op-1) * 4
-        la t1, menu_tabela
+        la t1, menu_table
         add t1, t1, t0
         lw t2, 0(t1) # t2 = endereco do handler
 
@@ -115,7 +115,7 @@ menu_loop:
         j menu_loop
 
 # Handlers das opções
-opcao_insert_front:
+option_insert_front:
         # Salvamento de ra na pilha
         addi sp, sp, -4
         sw ra, 0(sp)
@@ -149,14 +149,14 @@ opcao_insert_front:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_tabela
+        la t1, ins_table
 
         add t1, t1, t0
         lw t2, 0(t1)
 
         jalr zero, t2, 0 #jr r2
 
-opcao_insert_back:
+option_insert_back:
         # Salvamento de ra na pilha
         addi sp, sp, -4
         sw ra, 0(sp)
@@ -190,7 +190,7 @@ opcao_insert_back:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_tabela
+        la t1, ins_table
 
         add t1, t1, t0
         lw t2, 0(t1)
@@ -231,7 +231,7 @@ handle_remove_wagon:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, rem_tabela
+        la t1, rem_table
 
         add t1, t1, t0
         lw t2, 0(t1)
@@ -255,18 +255,18 @@ _rem_case_invalid_id:
         j _print_and_ret
 
 _rem_case_cannot_remove_locomotive:
-        la a0, msg_sem_remocao
+        la a0, msg_cannot_remove_locomotive
         j _print_and_ret
 
 
-opcao_listar:
+option_list:
         la a0, msg_ok
         li a7, 4
         ecall
 
         ret
 
-opcao_buscar:
+option_search:
         # Salvamento de ra na pilha
         addi sp, sp, -4
         sw ra, 0(sp)
@@ -282,8 +282,8 @@ opcao_buscar:
         # carregamento da head (economia de operação de deslocamento da pilha)
         la t0, train_head
         lw a0, 0(t0) # a0 = &locomotiva (head/sentinela)
-	call search_wagon
-	
+        call search_wagon
+        
         # Carregamento de ra da pilha
         lw ra, 0(sp)
         addi sp, sp, 4
@@ -291,7 +291,7 @@ opcao_buscar:
         # switch via tabela 
         mv t0, a0
         slli t0, t0, 2
-        la t1, search_tabela
+        la t1, search_table
 
         add t1, t1, t0
         lw t2, 0(t1)
@@ -325,22 +325,22 @@ _search_case_ok:
         ecall
         # Seleciona mensagem do tipo
         li t2, 1
-        beq t1, t2, _print_tipo_carga
+        beq t1, t2, _print_type_cargo
         li t2, 2
-        beq t1, t2, _print_tipo_passageiro
+        beq t1, t2, _print_type_passenger
         li t2, 3
-        beq t1, t2, _print_tipo_combustivel
+        beq t1, t2, _print_type_fuel
         j _print_and_ret
 
-_print_tipo_carga:
+_print_type_cargo:
         la a0, msg_cargo
         j _print_and_ret
 
-_print_tipo_passageiro:
+_print_type_passenger:
         la a0, msg_passenger
         j _print_and_ret
 
-_print_tipo_combustivel:
+_print_type_fuel:
         la a0, msg_fuel
         j _print_and_ret
 
@@ -353,14 +353,14 @@ _search_case_invalid_id:
         j _print_and_ret
 
 
-opcao_invalida:
+option_invalid:
         la a0, msg_invalid
         li a7, 4
         ecall
 
         j menu_loop
 
-opcao_sair:
+option_exit:
         li a7, 10
         ecall
 
@@ -429,7 +429,7 @@ create_wagon:	# Armazenamento dos argumentos em registradores temporários
 # ----------------------------------------------------------------------------------------------
 # verify_id
 # argumentos:
-#	    - a0 : endereco da locomotiva
+#	- a0 : endereco da locomotiva
 #       - a1 : id
 # retorno (a0):
 #       - 0 : id nao encontrado
@@ -474,7 +474,7 @@ _end_verify_id:
 # ----------------------------------------------------------------------------------------------
 # insert_front
 # argumentos:
-#	    - a0 : endereco da locomotiva
+#       - a0 : endereco da locomotiva
 #       - a1 : id
 #       - a2 : tipo
 # retorno (a0):
@@ -483,7 +483,7 @@ _end_verify_id:
 #       - 2 : id invalido (id < 0)
 #       - 3 : id ja inserido
 # ----------------------------------------------------------------------------------------------
-insert_front:	
+insert_front:   
         # salvamento de registradores
         addi sp, sp, -16
         sw s0, 0(sp)
@@ -497,26 +497,26 @@ insert_front:
         add s2, a2, zero # s2 = tipo
 
         # Verificacao de id (id nao negativo)
-        bge s1, zero, _insert_front_verificacao_se_id_ja_inserido
+        bge s1, zero, _insert_front_check_duplicate_id
         addi a0, zero, 2 # caso id negativo
         j _end_insert_front
 
-_insert_front_verificacao_se_id_ja_inserido:
+_insert_front_check_duplicate_id:
         add a0, s0, zero
         add a1, s1, zero
         call verify_id # a0 = 0 ou 1
-        beq a0, zero, _insert_front_id_valido
+        beq a0, zero, _insert_front_valid_id
         # Caso id ja inserido no vagao
         addi a0, zero, 3 # codigo de id ja inserido
 
         j _end_insert_front 
 
-_insert_front_id_valido:
+_insert_front_valid_id:
         # Verificacao de tipo
         addi t0, zero, 1
-        blt s2, t0, _insert_front_tipo_invalido
+        blt s2, t0, _insert_front_invalid_type
         addi t0, zero, 3
-        blt t0, s2, _insert_front_tipo_invalido
+        blt t0, s2, _insert_front_invalid_type
         
         # Caso tipo valido - criacao de novo vagao
         add a0, s1, zero
@@ -532,7 +532,7 @@ _insert_front_id_valido:
 
         j _end_insert_front
 
-_insert_front_tipo_invalido:
+_insert_front_invalid_type:
         addi a0, zero, 1 # codigo de tipo invalido
 
 _end_insert_front:
@@ -548,16 +548,16 @@ _end_insert_front:
 # ----------------------------------------------------------------------------------------------
 # insert_back
 # argumentos:
-#	    - a0 : endereco da locomotiva
-#	    - a1 : ID
-#	    - a2 : tipo
+#       - a0 : endereco da locomotiva
+#       - a1 : ID
+#       - a2 : tipo
 # retorno (a0):
 #       - 0 : adicionado com sucesso
 #       - 1 : tipo invalido
 #       - 2 : id invalido (id < 0)
 #       - 3 : id ja inserido
 # ----------------------------------------------------------------------------------------------
-insert_back:	
+insert_back:    
         # salvamento de registradores
         addi sp, sp, -20
         sw s0, 0(sp)
@@ -572,25 +572,25 @@ insert_back:
         add s2, a2, zero # s2 = tipo
 
         # Verificacao de id (id nao negativo)
-        bge s1, zero, _insert_back_verificacao_se_id_ja_inserido
+        bge s1, zero, _insert_back_check_duplicate_id
         addi a0, zero, 2 # caso id negativo
         j _end_insert_back
 
-_insert_back_verificacao_se_id_ja_inserido:
+_insert_back_check_duplicate_id:
         add a0, s0, zero
         add a1, s1, zero
         call verify_id # a0 = 0 ou 1
-        beq a0, zero, _insert_back_id_valido
+        beq a0, zero, _insert_back_valid_id
         # Caso id ja inserido no vagao
         addi a0, zero, 3 # codigo de id ja inserido
         j _end_insert_back
 
-_insert_back_id_valido:
+_insert_back_valid_id:
         # Verificacao de tipo
         addi t0, zero, 1
-        blt s2, t0, _insert_back_tipo_invalido
+        blt s2, t0, _insert_back_invalid_type
         addi t0, zero, 3
-        blt t0, s2, _insert_back_tipo_invalido
+        blt t0, s2, _insert_back_invalid_type
         
         # caso tipo valido - s3 = create_wagon(s1, s2, 0)
         add a0, s1, zero
@@ -603,7 +603,7 @@ _insert_back_id_valido:
         lw t2, 8(t1) # t2 = locomotiva.prox
 
         # t1 = &ultimo_vagao apos o loop
-_loop_insert_back:	
+_loop_insert_back:  
         beq t2, zero, _exit_loop_insert_back
         add t1, t2, zero # t1 = &vagao.prox
         lw t2, 8(t1) # t2 = vagao.prox->prox
@@ -614,7 +614,7 @@ _exit_loop_insert_back:
         add a0, zero, zero # codigo de sucesso
         j _end_insert_back
 
-_insert_back_tipo_invalido:
+_insert_back_invalid_type:
         addi a0, zero, 1
 
 _end_insert_back:
