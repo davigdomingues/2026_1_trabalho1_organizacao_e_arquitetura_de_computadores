@@ -20,11 +20,20 @@
         msg_wagon_not_found: .asciz "Vagão não encontrado.\n\n"
         msg_cannot_remove_locomotive: .asciz "Não é possível remover a locomotiva.\n\n"
 
-        # Mensagens de sucesso da operação
+        # Mensagens de sucesso da operação solicitada
         msg_add_ok_front: .asciz "Vagão adicionado no início.\n\n"
         msg_add_ok_back: .asciz "Vagão adicionado no final.\n\n"
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
         msg_search_ok: .asciz "Vagão foi encontrado com sucesso.\n\n"
+
+        # Mensagens usadas durante a listagem do trem
+        msg_list_empty: .asciz "\nO trem não possui nenhum vagão\n\n"
+        msg_list_id: .asciz "ID: "
+        msg_list_type: .asciz "; Tipo: "
+        msg_list_newline: .asciz "\n"
+        msg_list_type_cargo: .asciz "Carga"
+        msg_list_type_passenger: .asciz "Passageiro"
+        msg_list_type_fuel: .asciz "Combustível"
 
         # Mensagem para printar dados de vagão encontrado 
         next_line: .asciz "\n"
@@ -33,7 +42,6 @@
         msg_cargo: .asciz "Vagão de Carga\n"
         msg_passenger: .asciz "Vagão de Passageiro\n"
         msg_fuel: .asciz "Vagão de Combustível\n"
-
 
         .align 2
 
@@ -47,6 +55,11 @@ menu_table:
 
         .align 2
 
+list_table:
+        .word msg_list_type_cargo
+        .word msg_list_type_passenger
+        .word msg_list_type_fuel
+
 # tabela de operações de casos durante a remoção do vagão, via ID
 rem_table:
         .word _rem_case_ok # status 0 = ok
@@ -54,9 +67,16 @@ rem_table:
         .word _rem_case_invalid_id # status 2 = id inválido
         .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
 
-# tabela de operacoes de casos durante a adicao de vagao no inicio/fim
-ins_table:
-        .word _ins_case_ok # status 0 = ok
+# tabela de operacoes de casos durante a adicao de vagao no inicio
+ins_front_table:
+        .word _ins_case_ok_front # status 0 = ok
+        .word _ins_case_invalid_type # status 1 = tipo invalido
+        .word _ins_case_invalid_id # status 2 = id invalido
+        .word _ins_case_id_already_inserted # status 3 = id ja inserido
+
+# tabela de operacoes de casos durante a adicao de vagao no fim
+ins_back_table:
+        .word _ins_case_ok_back # status 0 = ok
         .word _ins_case_invalid_type # status 1 = tipo invalido
         .word _ins_case_invalid_id # status 2 = id invalido
         .word _ins_case_id_already_inserted # status 3 = id ja inserido
@@ -149,7 +169,7 @@ option_insert_front:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_table
+        la t1, ins_front_table
 
         add t1, t1, t0
         lw t2, 0(t1)
@@ -190,7 +210,7 @@ option_insert_back:
 
         # switch via tabela (igual menu_loop)
         slli t0, t0, 2
-        la t1, ins_table
+        la t1, ins_back_table
 
         add t1, t1, t0
         lw t2, 0(t1)
@@ -258,9 +278,26 @@ _rem_case_cannot_remove_locomotive:
         la a0, msg_cannot_remove_locomotive
         j _print_and_ret
 
-
 option_list:
-        la a0, msg_ok
+        # Salvamento de ra na pilha
+        addi sp, sp, -4
+        sw ra, 0(sp)
+
+        # Carrega cabeça do vagão
+        la t0, train_head
+        lw a0, 0(t0)
+
+        call list_train # (a0 = head) -> a0 = status
+
+
+        lw ra, 0(sp)
+        addi sp, sp, 4
+
+        bnez a0, _list_empty_case
+        ret
+
+_list_empty_case:
+        la a0, msg_list_empty
         li a7, 4
         ecall
 
@@ -367,7 +404,11 @@ option_exit:
 
 #Funções comuns a mais de uma opção 
 ## Funções de retorno de inserção (fim e inicio)
-_ins_case_ok:
+_ins_case_ok_front:
+        la a0, msg_add_ok_front
+        j _print_and_ret
+
+_ins_case_ok_back:
         la a0, msg_add_ok_back
         j _print_and_ret
 
@@ -685,6 +726,65 @@ _rem_ret_no_remotion:
         li a0, 3
         ret
 
+
+# ----------------------------------------------------------------------------------------------
+# list_train
+# argumentos:
+#       - a0 : endereco da locomotiva (head/sentinela)
+# retorno (a0):
+#       - 0 : Vagões impressos com sucesso
+#       - 1 : Trem vazio (sem vagões)
+# ----------------------------------------------------------------------------------------------
+list_train:
+        # Carrega primeiro vagão e checa existência
+        lw t1, 8(a0)
+        beqz t1, _list_empty
+
+        la a0, msg_list_newline
+        li a7, 4
+        ecall
+
+
+_list_print_loop:
+        # Imprime id
+        la a0, msg_list_id
+        li a7, 4
+        ecall
+
+        lw a0, 0(t1)
+        li a7, 1
+        ecall
+
+        # Imprime tipo
+        la a0, msg_list_type
+        li a7, 4
+        ecall
+        
+        lw t0, 4(t1)
+        addi t0, t0, -1 # Atualiza a origem (de 1 para 0)
+        slli t0, t0, 2 # Multiplica pelo tamanho da palavra
+        la t2, list_table # Utiliza o texto correspondente
+        add t2, t2, t0
+        lw a0, 0(t2)
+        li a7, 4
+        ecall
+
+        la a0, msg_list_newline
+        li a7, 4
+        ecall
+
+        lw t1, 8(t1)
+        bnez t1, _list_print_loop
+
+        ecall
+
+        li a0, 0
+        ret
+
+_list_empty:
+        li a0 1
+
+        ret
 # ----------------------------------------------------------------------------------------------
 # search_wagon: busca vagão por id
 # argumentos:
