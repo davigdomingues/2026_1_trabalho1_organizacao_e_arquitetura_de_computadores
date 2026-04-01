@@ -45,6 +45,11 @@ menu_tabela:
 
         .align 2
 
+list_tabela:
+        .word msg_listar_tipo_carga
+        .word msg_listar_tipo_passageiro
+        .word msg_listar_tipo_combustivel
+
 # tabela de operações de casos durante a remoção do vagão, via ID
 rem_tabela:
         .word _rem_case_ok # status 0 = ok
@@ -682,23 +687,11 @@ _list_print_loop:
         ecall
         
         lw t0, 4(t1)
-        addi t0, t0, -1
-        beqz t0, _list_print_cargo
-        addi t0, t0, -1
-        beqz t0, _list_print_passenger
-        addi t0, t0, -1
-        beqz t0, _list_print_fuel
-
-_list_print_cargo:
-        la a0, msg_listar_tipo_carga
-        j _list_continue
-_list_print_passenger:
-        la a0, msg_listar_tipo_passageiro
-        j _list_continue
-_list_print_fuel:
-        la a0, msg_listar_tipo_combustivel
-
-_list_continue:
+        addi t0, t0, -1             # Atualiza a origem (de 1 para 0)
+        slli t0, t0, 2              # Multiplica pelo tamanho da palavra
+        la t2, list_tabela          # Utiliza o texto correspondente
+        add t2, t2, t0
+        lw a0, 0(t2)
         li a7, 4
         ecall
 
