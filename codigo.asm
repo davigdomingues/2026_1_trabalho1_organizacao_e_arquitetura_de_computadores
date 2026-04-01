@@ -271,13 +271,13 @@ opcao_buscar:
         addi sp, sp, -4
         sw ra, 0(sp)
 
-        # Solicitação do ID - a1 = id
+        # Solicitação do ID
         la a0, msg_wagon_id
         li a7, 4
         ecall
         li a7, 5
         ecall
-        mv a1, a0 
+        mv a1, a0 #  a1 = id
         
         # carregamento da head (economia de operação de deslocamento da pilha)
         la t0, train_head
@@ -288,10 +288,8 @@ opcao_buscar:
         lw ra, 0(sp)
         addi sp, sp, 4
 
-        # Status em a0: 0..3
-        mv t0, a0
-
         # switch via tabela 
+        mv t0, a0
         slli t0, t0, 2
         la t1, search_tabela
 
@@ -692,10 +690,13 @@ _rem_ret_no_remotion:
 # argumentos:
 #       - a0 : endereco da locomotiva (head/sentinela)
 #       - a1 : ID alvo da busca
-# retorno (a0):
-#       - 0 : encontrado com sucesso
-#       - 1 : ID inválido (ID < 0)
-#       - 2 : não encontrado
+# retorno:
+#       - a0: 
+             0 : encontrado com sucesso
+#            1 : ID inválido (ID < 0)
+#            2 : não encontrado
+#       - a2: 
+             (se a0 == 0) endereco do nó encontrado
 # ----------------------------------------------------------------------------------------------
 search_wagon: 
         
@@ -707,7 +708,6 @@ search_wagon:
 loop_search: 
         beqz t0, _search_id_not_found # se (t0 == NULL) não encontrado
         lw t2, 0(t0) # t2 = nó_atual.id
-        lw t3, 4(t0) # t3 = nó_atual.tipo
         beq t2, t1, _search_id_found # se (t2 == t1) encontrado
         lw t0, 8(t0) # t0 = nó_atual.prox
         j loop_search # continua o loop
