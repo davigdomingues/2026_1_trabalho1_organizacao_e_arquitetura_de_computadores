@@ -45,16 +45,18 @@
 
         .align 2
 
+# tabela de opções de interação no menu principal
 menu_table:
         .word option_insert_front
         .word option_insert_back
-        .word handle_remove_wagon
+        .word handle_remove_wagon # opcao 3 (remocao): imprime resultado via rem_table
         .word option_list
         .word option_search
         .word option_exit
 
         .align 2
 
+# tabela de operações
 list_table:
         .word msg_list_type_cargo
         .word msg_list_type_passenger
@@ -62,10 +64,10 @@ list_table:
 
 # tabela de operações de casos durante a remoção do vagão, via ID
 rem_table:
-        .word _rem_case_ok # status 0 = ok
-        .word _rem_case_not_found # status 1 = não encontrado
-        .word _rem_case_invalid_id # status 2 = id inválido
-        .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva
+        .word _rem_case_ok # status 0 = ok (imprime msg_remove_ok)
+        .word _rem_case_not_found # status 1 = não encontrado (imprime msg_wagon_not_found)
+        .word _rem_case_invalid_id # status 2 = id inválido (imprime msg_id_invalid)
+        .word _rem_case_cannot_remove_locomotive # status 3 = locomotiva (imprime msg_cannot_remove_locomotive)
 
 # tabela de operacoes de casos durante a adicao de vagao no inicio
 ins_front_table:
@@ -217,7 +219,6 @@ option_insert_back:
 
         jalr zero, t2, 0 #jr r2
 
-
 # Remoção em lista encadeada simples, mantém (prev, curr) e ao achar faz prev.prox = curr.prox (offset 8 = prox)
 handle_remove_wagon:
         # Salvamento de ra na pilha
@@ -258,22 +259,27 @@ handle_remove_wagon:
 
         jalr zero, t2, 0
 
+# Impressão padrao para status inesperado
 _rem_case_default:
         la a0, msg_invalid
         j _print_and_ret
 
+# Impressão de sucesso de remoção
 _rem_case_ok:
         la a0, msg_remove_ok
         j _print_and_ret
 
+# Impressão para ID não encontrado
 _rem_case_not_found:
         la a0, msg_wagon_not_found
         j _print_and_ret
 
+# Impressão para ID inválido
 _rem_case_invalid_id:
         la a0, msg_id_invalid
         j _print_and_ret
 
+# Impressão para tentativa de remover locomotiva
 _rem_case_cannot_remove_locomotive:
         la a0, msg_cannot_remove_locomotive
         j _print_and_ret
@@ -681,12 +687,22 @@ _end_insert_back:
 #       - 2 : ID inválido (ID < 0)
 #       - 3 : não permite remover locomotiva (ID == 0)
 #
+# cenário de uso:
+#       - Chamada por handle_remove_wagon após ler o ID do usuário.
+#       - O status (a0) deve ser compatível com rem_table para selecionar a label de impresão
+#       apropriada.
+#
 # observações:
-#       1 - Nó: [0] = id, [4] = tipo, [8] = prox
+#       1 - Layout do nó (word): [0] = id, [4] = tipo, [8] = prox
 #
 #       2 - A função foi transformada em uma Função Folha. Como ela não executa 
 #       chamadas (call/jal) internamente, o registrador 'ra'permanece intacto. 
 #       Logo, a alocação e a liberação de espaço na pilha não são necessárias aqui.
+#
+#       3 - A remoção é lógica: o nó removido deixa de ser referenciado, mas não é desalocado.
+#       Esse padrão foi escolhido, dada a simplicidade de implementação do trabalho solicitado.
+#
+#       4 - A Convencao de status adotad segue a rem_table.
 # ----------------------------------------------------------------------------------------------
 remove_wagon:
         # Condicional para a remoção do vagão identificado
@@ -714,18 +730,23 @@ _rem_found:
         li a0, 0
         ret
 
+# (Identificador nulo significa que o processo de remoção funcionou)
+# Analogamente, seria o "li a0, 0"
+
+# Identificador para vagão não encontrado
 _rem_ret_not_found:
         li a0, 1
         ret
 
+# Identificador para ID inválido
 _rem_ret_invalid_id:
         li a0, 2
         ret
 
+# Identificador para "não remoção"
 _rem_ret_no_remotion:
         li a0, 3
         ret
-
 
 # ----------------------------------------------------------------------------------------------
 # list_train
@@ -815,10 +836,12 @@ loop_search:
 _search_id_found: 
         mv a2, t0 # a2 = endereço do nó encontrado
         li a0, 0
-        ret        
+        ret       
+ 
 _search_invalid_id: 
         li a0, 1
         ret
+
 _search_id_not_found: 
         li a0, 2
         ret
