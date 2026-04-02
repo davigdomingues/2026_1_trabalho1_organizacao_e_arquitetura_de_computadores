@@ -451,7 +451,8 @@ _print_and_ret:
 #           - 2 : passageiro
 #           - 3 : combustivel 
 # -----------------------------------------------
-create_wagon:	# Armazenamento dos argumentos em registradores temporários
+create_wagon:	
+        # Armazenamento dos argumentos em registradores temporários
         mv t1, a0
         mv t2, a1
         mv t3, a2   
@@ -489,19 +490,19 @@ verify_id:
         sw s1, 4(sp)
         
         # Salvamento de argumentos
-        add s0, a0, zero
-        add s1, a1, zero
+        add s0, a0, zero # s0 = &locomotiva
+        add s1, a1, zero # s1 = id (id a ser verificado)
 
         add t0, s0, zero # t0 = &locomotiva
         lw t1, 0(t0) # t1 = locomotiva.id 
         lw t2, 8(t0) # t2 = locomotiva.prox
 
 _verify_id_loop:
-        beq s1, t1, _found_verify_id
-        beq t2, zero, _exit_verify_id_loop
-        add t0, t2, zero # t0 = vagao.prox
-        lw t1, 0(t0) # t1 = vagao.prox->id
-        lw t2, 8(t0) # t2 = vagao.prox->prox
+        beq s1, t1, _found_verify_id # caso encontre o ID no trem
+        beq t2, zero, _exit_verify_id_loop # caso chegue ao final do trem (ponteiro para prox vagao nulo)
+        add t0, t2, zero # t0 = vagao.prox, endereco do proximo vagao
+        lw t1, 0(t0) # t1 = vagao.prox->id, id do proximo vagao
+        lw t2, 8(t0) # t2 = vagao.prox->prox, endereco do vagao apontado pelo proximo vagao
         j _verify_id_loop
 
 _found_verify_id:
@@ -549,25 +550,25 @@ insert_front:
         j _end_insert_front
 
 _insert_front_check_duplicate_id:
-        add a0, s0, zero
-        add a1, s1, zero
-        call verify_id # a0 = 0 ou 1
-        beq a0, zero, _insert_front_valid_id
+        add a0, s0, zero # a0 = &locomotiva
+        add a1, s1, zero # a1 = id (id a ser buscado no trem)
+        call verify_id # a0 = 0 ou 1 (0 : id nao localizado no trem)
+        beq a0, zero, _insert_front_valid_id 
         # Caso id ja inserido no vagao
         addi a0, zero, 3 # codigo de id ja inserido
 
         j _end_insert_front 
 
 _insert_front_valid_id:
-        # Verificacao de tipo
+        # Verificacao de tipo (1 <= tipo <= 3)
         addi t0, zero, 1
         blt s2, t0, _insert_front_invalid_type
         addi t0, zero, 3
         blt t0, s2, _insert_front_invalid_type
         
         # Caso tipo valido - criacao de novo vagao
-        add a0, s1, zero
-        add a1, s2, zero
+        add a0, s1, zero # a1 = id
+        add a1, s2, zero # a2 = tipo
         lw a2, 8(s0) # a2 = locomotiva.prox
         call create_wagon # a0 = &vagao_criado
         
@@ -623,35 +624,35 @@ insert_back:
         addi a0, zero, 2 # caso id negativo
         j _end_insert_back
 
-_insert_back_check_duplicate_id:
-        add a0, s0, zero
-        add a1, s1, zero
-        call verify_id # a0 = 0 ou 1
+_insert_back_check_duplicate_id: 
+        add a0, s0, zero # a0 = &locomotiva
+        add a1, s1, zero # a1 = id
+        call verify_id # a0 = 0 ou 1 (0: id nao localizado no trem)
         beq a0, zero, _insert_back_valid_id
         # Caso id ja inserido no vagao
         addi a0, zero, 3 # codigo de id ja inserido
         j _end_insert_back
 
 _insert_back_valid_id:
-        # Verificacao de tipo
+        # Verificacao de tipo (1 <= tipo <= 3)
         addi t0, zero, 1
         blt s2, t0, _insert_back_invalid_type
         addi t0, zero, 3
         blt t0, s2, _insert_back_invalid_type
         
         # caso tipo valido - s3 = create_wagon(s1, s2, 0)
-        add a0, s1, zero
-        add a1, s2, zero
-        addi a2, zero, 0
-        call create_wagon
-        add s3, a0, zero
+        add a0, s1, zero # a0 = id
+        add a1, s2, zero # a1 = tipo
+        addi a2, zero, 0 # a2 = 0 (prox vagao nulo)
+        call create_wagon # a0 = &vagao_criado
+        add s3, a0, zero # s3 = &vagao_criado
 
         mv t1, s0 #t1 = &locomotiva
         lw t2, 8(t1) # t2 = locomotiva.prox
 
         # t1 = &ultimo_vagao apos o loop
 _loop_insert_back:  
-        beq t2, zero, _exit_loop_insert_back
+        beq t2, zero, _exit_loop_insert_back # atingido fim do trem (vagao.prox nulo)
         add t1, t2, zero # t1 = &vagao.prox
         lw t2, 8(t1) # t2 = vagao.prox->prox
         j _loop_insert_back
