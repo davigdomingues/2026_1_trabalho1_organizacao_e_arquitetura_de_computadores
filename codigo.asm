@@ -26,22 +26,15 @@
         msg_remove_ok: .asciz "Vagão removido com sucesso.\n\n"
         msg_search_ok: .asciz "Vagão foi encontrado com sucesso.\n\n"
 
-        # Mensagens usadas durante a listagem do trem
+        # Mensagens usadas durante a listagem e busca do trem
         msg_list_empty: .asciz "\nO trem não possui nenhum vagão\n\n"
         msg_list_id: .asciz "ID: "
         msg_list_type: .asciz "; Tipo: "
         msg_list_newline: .asciz "\n"
+        msg_list_double_newline: .asciz "\n\n"
         msg_list_type_cargo: .asciz "Carga"
         msg_list_type_passenger: .asciz "Passageiro"
         msg_list_type_fuel: .asciz "Combustível"
-
-        # Mensagem para printar dados de vagão encontrado 
-        next_line: .asciz "\n"
-        msg_type: .asciz "Tipo: "
-        msg_ID: .asciz "ID: "
-        msg_cargo: .asciz "Vagão de Carga\n"
-        msg_passenger: .asciz "Vagão de Passageiro\n"
-        msg_fuel: .asciz "Vagão de Combustível\n"
 
         .align 2
 
@@ -295,7 +288,6 @@ option_list:
 
         call list_train # (a0 = head) -> a0 = status
 
-
         lw ra, 0(sp)
         addi sp, sp, 4
 
@@ -341,31 +333,27 @@ option_search:
 
         jalr zero, t2, 0
 
-
+# Mensagem para casos de sucesso na busca do vagão, imprimindo ID e Tipo do vagão
 _search_case_ok:
         # a2 contém o endereço do nó encontrado
         # Carrega ID
-        lw t0, 0(a2)         # t0 = id
+        lw t0, 0(a2) # t0 = id
         # Carrega tipo
-        lw t1, 4(a2)         # t1 = tipo
+        lw t1, 4(a2) # t1 = tipo
 
         # Imprime ID
-        la a0, msg_ID
+        la a0, msg_list_id
         li a7, 4
         ecall
         mv a0, t0
         li a7, 1
         ecall
 
-        # Imprime nova linha
-        la a0, next_line
+        # Imprime tipo
+        la a0, msg_list_type
         li a7, 4
         ecall
 
-        # Imprime tipo
-        la a0, msg_type
-        li a7, 4
-        ecall
         # Seleciona mensagem do tipo
         li t2, 1
         beq t1, t2, _print_type_cargo
@@ -375,26 +363,45 @@ _search_case_ok:
         beq t1, t2, _print_type_fuel
         j _print_and_ret
 
+# Mensagem de vagão de tipo Carga
 _print_type_cargo:
-        la a0, msg_cargo
-        j _print_and_ret
-
+        la a0, msg_list_type_cargo
+        li a7, 4
+        ecall
+        la a0, msg_list_double_newline
+        li a7, 4
+        ecall
+        ret
+ 
+# Mensagem de vagão de tipo Passageiro
 _print_type_passenger:
-        la a0, msg_passenger
-        j _print_and_ret
+        la a0, msg_list_type_passenger
+        li a7, 4
+        ecall
+        la a0, msg_list_double_newline
+        li a7, 4
+        ecall
+        ret
 
+# Mensagem de vagão de tipo Combustível
 _print_type_fuel:
-        la a0, msg_fuel
-        j _print_and_ret
+        la a0, msg_list_type_fuel
+        li a7, 4
+        ecall
+        la a0, msg_list_double_newline
+        li a7, 4
+        ecall
+        ret
 
+# Mensagem de vagão não encontrado
 _search_case_not_found:
         la a0, msg_wagon_not_found
         j _print_and_ret
 
+# Mensagem de id inválido
 _search_case_invalid_id:
         la a0, msg_id_invalid
         j _print_and_ret
-
 
 option_invalid:
         la a0, msg_invalid
