@@ -805,7 +805,7 @@ _list_print_loop:
         lw t1, 8(t1)
         bnez t1, _list_print_loop
 
-        ecall
+        ecall # Impressao de nova linha (usa argumentos da ultima iteracao)
 
         li a0, 0
         ret
