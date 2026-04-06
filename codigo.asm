@@ -703,7 +703,7 @@ _end_insert_back:
 #       3 - A remoção é lógica: o nó removido deixa de ser referenciado, mas não é desalocado.
 #       Esse padrão foi escolhido, dada a simplicidade de implementação do trabalho solicitado.
 #
-#       4 - A Convencao de status adotad segue a rem_table.
+#       4 - A Convencao de status adotada segue a rem_table.
 # ----------------------------------------------------------------------------------------------
 remove_wagon:
         # Condicional para a remoção do vagão identificado
